@@ -1,11 +1,10 @@
-SERVICE		:= screencaster
-NAME		:= ghcr.io/fomo-labs/$(SERVICE)
+SERVICE		:= roastbeef-swag
+NAME		:= ghcr.io/maribowman/$(SERVICE)
 GIT_BRANCH	:= $(shell git rev-parse --abbrev-ref HEAD)
 GIT_HASH	:= $(shell git rev-parse --short HEAD)
 TAG			:= $(GIT_BRANCH)-$(GIT_HASH)
 IMAGE		:= $(NAME):$(TAG)
 STAGE		:= local
-DOCKER_DATA	:= $(shell cd .. && pwd)/docker-data/$(SERVICE)
 
 ### docker
 .PHONY: build
@@ -16,7 +15,6 @@ build:
 
 push: build
 	@echo pushing images...
-	@#az acr login --name registrysandbox
 	@docker push $(IMAGE)
 	@docker push $(NAME):latest
 
@@ -24,12 +22,6 @@ push: build
 deploy: push
 	@echo triggering deployment...
 	@cd helm && helm upgrade --install $(SERVICE) --values ./values.yaml . --namespace default
-
-up: down
-	@DOCKER_DATA=$(DOCKER_DATA) docker-compose -f resources/docker-compose.yaml up -d
-
-down:
-	@DOCKER_DATA=$(DOCKER_DATA) docker-compose -f resources/docker-compose.yaml down
 
 .PHONY: service
 service: build
