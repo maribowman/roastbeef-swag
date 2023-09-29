@@ -1,8 +1,10 @@
 server:
   port: 8800
   mode: debug
+
 logging:
   logLevel: 0  # -1 TRACE | 0 DEBUG | 1 INFO (default) | 2 WARN
   outputFormat: TEXT # TEXT | JSON (default)
+
 discord:
-  token: 
+  token: TVRFMU56TTFOemcwTVRnek16Z3dPREF5TXcuR243cXg0LktVZHYwc1JTVDZVUWxfcUl0am43M1RSSVo1cDVBcnR6amg2QWJrCg==
