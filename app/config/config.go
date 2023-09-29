@@ -12,6 +12,7 @@ var Config = loadConfig()
 type config struct {
 	Server  ServerConfig
 	Logging LoggingConfig
+	Discord DiscordConfig
 }
 
 func loadConfig() config {
