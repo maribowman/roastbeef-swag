@@ -1,0 +1,6 @@
+server:
+  port: 8800
+  mode: debug
+logging:
+  logLevel: 0  # -1 TRACE | 0 DEBUG | 1 INFO (default) | 2 WARN
+  outputFormat: TEXT # TEXT | JSON (default)
