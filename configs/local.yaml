@@ -7,4 +7,6 @@ logging:
   outputFormat: TEXT # TEXT | JSON (default)
 
 discord:
-  token: TVRFMU56TTFOemcwTVRnek16Z3dPREF5TXcuR243cXg0LktVZHYwc1JTVDZVUWxfcUl0am43M1RSSVo1cDVBcnR6amg2QWJrCg==
+  token: TVRFMU56TTFOemcwTVRnek16Z3dPREF5TXcuR19idmRKLmgtNGVHdS1NbTk2em9meXNKLXh3SUJ3aURIZ25fWGxpU0xvSmlZ
+  channels:
+    - { name: groceries, id: 1084632136180572230 }

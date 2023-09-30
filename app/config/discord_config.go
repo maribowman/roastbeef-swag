@@ -1,5 +1,11 @@
 package config
 
 type DiscordConfig struct {
-	Token string
+	Token    string
+	Channels []Channel
+}
+
+type Channel struct {
+	Name string
+	ID   string
 }
