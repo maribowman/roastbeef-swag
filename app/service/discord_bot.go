@@ -40,6 +40,6 @@ func NewDiscordBot() model.DiscordBot {
 
 func (bot *DiscordBot) CloseSession() {
 	if err := bot.session.Close(); err != nil {
-		log.Err(err).Msg("could not close discord session")
+		log.Error().Err(err).Msg("could not close discord session")
 	}
 }
