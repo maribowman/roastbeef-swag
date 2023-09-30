@@ -6,12 +6,13 @@ TAG			:= $(GIT_BRANCH)-$(GIT_HASH)
 IMAGE		:= $(NAME):$(TAG)
 STAGE		:= local
 
+
 ### docker
 .PHONY: build
 build:
 	@echo starting build...
 	@docker build -q -t $(IMAGE) -t $(NAME):latest .
-	@docker image prune -f --filter label=stage=builder > /dev/null
+	@docker image prune -f --filter label=stage=builder >/dev/null
 
 push: build
 	@echo pushing images...
@@ -30,7 +31,12 @@ service: build
 stop:
 	@docker stop $$(docker ps -q) > /dev/null
 
+
 ### testing
+.PHONY: run
+run:
+	@go run main.go
+
 .PHONY: tests
 tests:
 	@go test -race ./...
