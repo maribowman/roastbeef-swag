@@ -5,15 +5,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/controller"
+	"github.com/maribowman/roastbeef-swag/app/model"
+	"github.com/maribowman/roastbeef-swag/app/service"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 )
 
-func InitServer() (*http.Server, error) {
+func InitServer() (*http.Server, model.DiscordBot, error) {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Config.Server.Port),
 		Handler: injectRouter(),
-	}, nil
+	}, service.NewDiscordBot(), nil
 }
 
 func injectRouter() *gin.Engine {

@@ -1,21 +1,27 @@
 package service
 
 import (
+	"encoding/base64"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/maribowman/roastbeef-swag/app/repository"
-	"log"
+	"github.com/rs/zerolog/log"
 )
 
 type DiscordBot struct {
+	session       *discordgo.Session
 	groceryClient model.GroceryClient
 }
 
 func NewDiscordBot() model.DiscordBot {
-	session, err := discordgo.New("Bot " + config.Config.Discord.Token)
+	tokenBytes, err := base64.StdEncoding.DecodeString(config.Config.Discord.Token)
 	if err != nil {
-		log.Fatal("error creating discord session", err)
+		log.Fatal().Err(err).Msg("could not decode token")
+	}
+	session, err := discordgo.New("Bot " + string(tokenBytes))
+	if err != nil {
+		log.Fatal().Err(err).Msg("error creating discord session")
 	}
 
 	groceryClient := repository.NewGroceryClient(session)
@@ -23,10 +29,17 @@ func NewDiscordBot() model.DiscordBot {
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = session.Open(); err != nil {
-		log.Fatal("could not open session", err)
+		log.Fatal().Err(err).Msg("could not open discord session")
 	}
 
 	return &DiscordBot{
+		session:       session,
 		groceryClient: groceryClient,
+	}
+}
+
+func (bot *DiscordBot) CloseSession() {
+	if err := bot.session.Close(); err != nil {
+		log.Err(err).Msg("could not close discord session")
 	}
 }

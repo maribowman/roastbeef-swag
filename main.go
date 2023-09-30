@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/maribowman/roastbeef-swag/app"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/rs/zerolog"
@@ -36,19 +37,21 @@ func initLogger() {
 }
 
 func main() {
-	server, err := app.InitServer()
+	server, bot, err := app.InitServer()
 	log.Info().Msgf("running server on port %d", config.Config.Server.Port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init server")
 	}
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal().Err(err).Msg("failed to boot server")
 		}
 	}()
+
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	bot.CloseSession()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
