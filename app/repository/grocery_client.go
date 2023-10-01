@@ -66,7 +66,7 @@ func (client *GroceryClient) groceryAction(session *discordgo.Session, message *
 		client.shoppingList = append(client.shoppingList, model.ShoppingEntry{
 			ID:     len(client.shoppingList),
 			Item:   message.Content,
-			Amount: 1, // TODO get amount from last number in message content
+			Amount: 1,
 			Date:   time.Now(),
 		})
 	}
