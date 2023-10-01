@@ -24,7 +24,7 @@ func NewDiscordBot() model.DiscordBot {
 		log.Fatal().Err(err).Msg("error creating discord session")
 	}
 
-	groceryClient := repository.NewGroceryClient(session, "1157357841833808023")
+	groceryClient := repository.NewGroceryClient(session, config.Config.Discord.BotID)
 
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
