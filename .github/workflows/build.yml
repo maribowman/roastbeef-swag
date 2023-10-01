@@ -11,7 +11,7 @@ permissions:
 
 env:
   DOCKERHUB_NAME: marschine
-  GITHUB_IMAGE_NAME: ghcr.io/${{ github.repository }}
+  GH_IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
