@@ -29,7 +29,7 @@ func CreateShoppingListTable(shoppingList []ShoppingEntry) string {
 	writer.WriteString("```md\n")
 
 	table := tablewriter.NewWriter(&writer)
-	table.SetHeader([]string{"ID", "Item", "Amount", "Added"})
+	table.SetHeader([]string{"#", "Item", "QTY", "Added"})
 	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
