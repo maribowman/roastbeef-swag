@@ -1,4 +1,4 @@
-name: Docker image builder
+name: Docker Image Builder
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
         run: echo "TAG=$(shell git rev-parse --abbrev-ref HEAD)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build Docker image
-        run: docker build -t ${{ GITHUB_IMAGE_NAME }}:latest -t ${{ GITHUB_IMAGE_NAME }}:${{ TAG }} .
+        run: docker build -t ${{ GH_IMAGE_NAME }}:latest -t ${{ GH_IMAGE_NAME }}:${{ TAG }} .
 
       - name: Log into registry ghcr.io
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -35,5 +35,5 @@ jobs:
 
       - name: Push image to ghcr.io
         run: |
-          docker push ${{ GITHUB_IMAGE_NAME }}:latest
-          docker push ${{ GITHUB_IMAGE_NAME }}:${{ TAG }}
+          docker push ${{ GH_IMAGE_NAME }}:latest
+          docker push ${{ GH_IMAGE_NAME }}:${{ TAG }}
