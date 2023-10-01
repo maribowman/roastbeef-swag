@@ -18,6 +18,15 @@ type GroceryClient struct {
 	shoppingList     []model.ShoppingEntry
 }
 
+/*
+ - add dynamic quantity to item
+ - parse and add multiline items
+ - only edit and not send/delete message
+ - parse previous table -> re-instantiate from channel
+ -- only 1 message from bot possible if implemented correctly
+ - clear all items
+*/
+
 func NewGroceryClient(session *discordgo.Session, botID string) model.GroceryClient {
 	log.Debug().Msg("registering grocery client handler")
 	client := GroceryClient{}
