@@ -24,7 +24,7 @@ jobs:
         run: echo "TAG=$(shell git rev-parse --abbrev-ref HEAD)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build Docker image
-        run: docker build -t ${{ env.GH_IMAGE_NAME }}:latest -t ${{ env.GH_IMAGE_NAME }}:${{ TAG }} .
+        run: docker build -t ${{ env.GH_IMAGE_NAME }}:latest -t ${{ env.GH_IMAGE_NAME }}:${{ env.TAG }} .
 
       - name: Log into registry ghcr.io
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -36,4 +36,4 @@ jobs:
       - name: Push image to ghcr.io
         run: |
           docker push ${{ env.GH_IMAGE_NAME }}:latest
-          docker push ${{ env.GH_IMAGE_NAME }}:${{ TAG }}
+          docker push ${{ env.GH_IMAGE_NAME }}:${{ env.TAG }}
