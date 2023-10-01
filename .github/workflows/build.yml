@@ -1,13 +1,9 @@
-name: Docker Image Builder
+name: Build
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
-
-permissions:
-  contents: read
-  packages: write
 
 env:
   DOCKERHUB_NAME: marschine
@@ -16,6 +12,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v3
