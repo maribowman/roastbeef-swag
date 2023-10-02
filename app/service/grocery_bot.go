@@ -20,7 +20,8 @@ const (
 )
 
 var (
-	updateRegex = regexp.MustCompile("^[0-9]+( [a-zA-Z]*)( .*)*$")
+	addRegex    = regexp.MustCompile("^(.*?)( [0-9]+)?$")
+	updateRegex = regexp.MustCompile("^([0-9]+)( [a-zA-Z]*)( .*)*$")
 	removeRegex = regexp.MustCompile("^(\\*( [0-9]+)*|[0-9]+( [0-9]+)*)$")
 	//removeRegex = regexp.MustCompile("^\\*[ [0-9]+]*|[0-9]+[ [0-9]+]*$")
 	undoRegex = regexp.MustCompile("^&$")
@@ -38,8 +39,7 @@ type GroceryBot struct {
  - parse and add multiline items
  - only edit and not send/delete message
  - parse previous table -> re-instantiate from channel
- -- only 1 message from bot possible if implemented correctly
- - clear all items
+ 	-> only 1 message from bot possible if implemented correctly
 */
 
 func NewGroceryBot(botID string, channelID string) model.DiscordBot {
@@ -66,19 +66,30 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		return
 	}
 
-	if regexp.MustCompile(`\d`).MatchString(message.Content) {
-		bot.removeItemFromShoppingList(message.Content)
-	} else {
+	// TODO getCurrentShoppingListTable()
+	var resultTable string
+
+	switch bot.ParseContent(message.Content) {
+	case add:
+		// TODO iterate content for each line and parse quantity at end
 		bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
 			ID:     len(bot.shoppingList),
 			Item:   message.Content,
 			Amount: 1,
 			Date:   time.Now(),
 		})
+		resultTable = model.CreateShoppingListTable(bot.shoppingList)
+	case update:
+		resultTable = model.CreateShoppingListTable(bot.shoppingList)
+	case remove:
+		bot.removeItemFromShoppingList(message.Content)
+		resultTable = model.CreateShoppingListTable(bot.shoppingList)
+	case undo:
+		resultTable = bot.previousShoppingListTable
 	}
 
-	shoppingListTable := model.CreateShoppingListTable(bot.shoppingList)
-	if _, err := session.ChannelMessageSend(message.ChannelID, shoppingListTable); err != nil {
+	// TODO edit instead of new message
+	if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
 		log.Error().Err(err).Msg("could not send message")
 	}
 
@@ -103,6 +114,7 @@ func (bot *GroceryBot) ParseContent(content string) string {
 }
 
 func (bot *GroceryBot) removeItemFromShoppingList(content string) {
+	// TODO refactor this
 	id, _ := strconv.Atoi(content)
 
 	var tempShoppingList []model.ShoppingEntry
