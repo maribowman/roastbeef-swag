@@ -2,20 +2,35 @@ package service
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
-const groceries_channel_name = "groceries"
+const (
+	GroceriesChannelName = "groceries"
+
+	add    = "add"
+	update = "update"
+	remove = "remove"
+	undo   = "undo"
+)
+
+var (
+	updateRegex = regexp.MustCompile("^[0-9]+( [a-zA-Z]*)( .*)*$")
+	removeRegex = regexp.MustCompile("^(\\*( [0-9]+)*|[0-9]+( [0-9]+)*)$")
+	//removeRegex = regexp.MustCompile("^\\*[ [0-9]+]*|[0-9]+[ [0-9]+]*$")
+	undoRegex = regexp.MustCompile("^&$")
+)
 
 type GroceryBot struct {
-	botID            string
-	groceryChannelID string
-	shoppingList     []model.ShoppingEntry
+	botID                     string
+	channelID                 string
+	shoppingList              []model.ShoppingEntry
+	previousShoppingListTable string
 }
 
 /*
@@ -27,25 +42,17 @@ type GroceryBot struct {
  - clear all items
 */
 
-func NewGroceryBot(botID string) model.DiscordBot {
+func NewGroceryBot(botID string, channelID string) model.DiscordBot {
 	log.Debug().Msg("registering grocery client handler")
-	client := GroceryBot{}
-	client.botID = botID
-	for _, channel := range config.Config.Discord.Channels {
-		if channel.Name == groceries_channel_name {
-			client.groceryChannelID = channel.ID
-			break
-		}
+	return &GroceryBot{
+		botID:     botID,
+		channelID: channelID,
 	}
-	return &client
 }
 
 func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.ChannelID != bot.groceryChannelID {
-		return
-	}
 	if message.Author.ID == bot.botID {
-		messages, err := session.ChannelMessages(bot.groceryChannelID, 100, message.Message.ID, "", "")
+		messages, err := session.ChannelMessages(bot.channelID, 100, message.Message.ID, "", "")
 		if err != nil {
 			return
 		}
@@ -55,7 +62,7 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 				messageIDs = append(messageIDs, msg.ID)
 			}
 		}
-		session.ChannelMessagesBulkDelete(bot.groceryChannelID, messageIDs)
+		session.ChannelMessagesBulkDelete(bot.channelID, messageIDs)
 		return
 	}
 
@@ -79,6 +86,20 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 	if err := session.ChannelMessageDelete(message.ChannelID, message.ID); err != nil {
 		log.Error().Err(err).Msg("could not delete previous message")
 	}
+}
+
+func (bot *GroceryBot) ParseContent(content string) string {
+	strings.TrimSpace(content)
+	if updateRegex.MatchString(content) {
+		return update
+	}
+	if removeRegex.MatchString(content) {
+		return remove
+	}
+	if undoRegex.MatchString(content) {
+		return undo
+	}
+	return add
 }
 
 func (bot *GroceryBot) removeItemFromShoppingList(content string) {

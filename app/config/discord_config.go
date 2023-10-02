@@ -3,10 +3,5 @@ package config
 type DiscordConfig struct {
 	Token    string
 	BotID    string
-	Channels []Channel
-}
-
-type Channel struct {
-	Name string
-	ID   string
+	Channels map[string]string
 }

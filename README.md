@@ -12,16 +12,12 @@
 - ___update 0___  
   `0 sahne 2`
 
-- ___delete 3___  
-  `3`
-
-- ___delete 4, 5___  
+- ___delete___  
+  `3`  
   `4 5`
 
-- ___delete all___  
-  `*`
-
-- ___delete all except 5, 2, 8___  
+- ___delete all (except)___  
+  `*`  
   `* 5 2 8`
 
 - ___undo previous action___  

@@ -32,15 +32,17 @@ func NewDiscordService() model.DiscordService {
 	}
 
 	service.session = session
-	service.groceryBot = NewGroceryBot(config.Config.Discord.BotID)
+	service.groceryBot = NewGroceryBot(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannelName])
 
 	return &service
 }
 
 func (service *DiscordService) DispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
 	switch message.ChannelID {
-	case "1084632136180572230":
+	case config.Config.Discord.Channels[GroceriesChannelName]:
 		service.groceryBot.MessageEvent(session, message)
+	default:
+		log.Debug().Msg("could not dispatch message event to handler")
 	}
 }
 
