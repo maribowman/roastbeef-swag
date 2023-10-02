@@ -6,11 +6,11 @@
 ## manage grocery list
 
 - ___add___  
-  `eier 4`  
-  `milch`
+  `bacon 4`  
+  `coffee`
 
 - ___update 0___  
-  `0 sahne 2`
+  `0 milk 2`
 
 - ___delete___  
   `3`  
