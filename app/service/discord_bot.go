@@ -5,16 +5,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
-	"github.com/maribowman/roastbeef-swag/app/repository"
 	"github.com/rs/zerolog/log"
 )
 
-type DiscordBot struct {
-	session       *discordgo.Session
-	groceryClient model.GroceryClient
+type DiscordService struct {
+	session    *discordgo.Session
+	groceryBot model.DiscordBot
 }
 
-func NewDiscordBot() model.DiscordBot {
+func NewDiscordService() model.DiscordService {
+	service := DiscordService{}
 	tokenBytes, err := base64.StdEncoding.DecodeString(config.Config.Discord.Token)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not decode token")
@@ -24,22 +24,28 @@ func NewDiscordBot() model.DiscordBot {
 		log.Fatal().Err(err).Msg("error creating discord session")
 	}
 
-	groceryClient := repository.NewGroceryClient(session, config.Config.Discord.BotID)
-
+	session.AddHandler(service.DispatchHandler)
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = session.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open discord session")
 	}
 
-	return &DiscordBot{
-		session:       session,
-		groceryClient: groceryClient,
+	service.session = session
+	service.groceryBot = NewGroceryBot(config.Config.Discord.BotID)
+
+	return &service
+}
+
+func (service *DiscordService) DispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
+	switch message.ChannelID {
+	case "1084632136180572230":
+		service.groceryBot.MessageEvent(session, message)
 	}
 }
 
-func (bot *DiscordBot) CloseSession() {
-	if err := bot.session.Close(); err != nil {
+func (service *DiscordService) CloseSession() {
+	if err := service.session.Close(); err != nil {
 		log.Error().Err(err).Msg("could not close discord session")
 	}
 }

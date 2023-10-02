@@ -1,4 +1,4 @@
-package repository
+package service
 
 import (
 	"github.com/bwmarrin/discordgo"
@@ -12,7 +12,7 @@ import (
 
 const groceries_channel_name = "groceries"
 
-type GroceryClient struct {
+type GroceryBot struct {
 	botID            string
 	groceryChannelID string
 	shoppingList     []model.ShoppingEntry
@@ -27,9 +27,9 @@ type GroceryClient struct {
  - clear all items
 */
 
-func NewGroceryClient(session *discordgo.Session, botID string) model.GroceryClient {
+func NewGroceryBot(botID string) model.DiscordBot {
 	log.Debug().Msg("registering grocery client handler")
-	client := GroceryClient{}
+	client := GroceryBot{}
 	client.botID = botID
 	for _, channel := range config.Config.Discord.Channels {
 		if channel.Name == groceries_channel_name {
@@ -37,41 +37,40 @@ func NewGroceryClient(session *discordgo.Session, botID string) model.GroceryCli
 			break
 		}
 	}
-	session.AddHandler(client.groceryAction)
 	return &client
 }
 
-func (client *GroceryClient) groceryAction(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.ChannelID != client.groceryChannelID {
+func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
+	if message.ChannelID != bot.groceryChannelID {
 		return
 	}
-	if message.Author.ID == client.botID {
-		messages, err := session.ChannelMessages(client.groceryChannelID, 100, message.Message.ID, "", "")
+	if message.Author.ID == bot.botID {
+		messages, err := session.ChannelMessages(bot.groceryChannelID, 100, message.Message.ID, "", "")
 		if err != nil {
 			return
 		}
 		var messageIDs []string
 		for _, msg := range messages {
-			if msg.Author.ID == client.botID {
+			if msg.Author.ID == bot.botID {
 				messageIDs = append(messageIDs, msg.ID)
 			}
 		}
-		session.ChannelMessagesBulkDelete(client.groceryChannelID, messageIDs)
+		session.ChannelMessagesBulkDelete(bot.groceryChannelID, messageIDs)
 		return
 	}
 
 	if regexp.MustCompile(`\d`).MatchString(message.Content) {
-		client.removeItemFromShoppingList(message.Content)
+		bot.removeItemFromShoppingList(message.Content)
 	} else {
-		client.shoppingList = append(client.shoppingList, model.ShoppingEntry{
-			ID:     len(client.shoppingList),
+		bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
+			ID:     len(bot.shoppingList),
 			Item:   message.Content,
 			Amount: 1,
 			Date:   time.Now(),
 		})
 	}
 
-	shoppingListTable := model.CreateShoppingListTable(client.shoppingList)
+	shoppingListTable := model.CreateShoppingListTable(bot.shoppingList)
 	if _, err := session.ChannelMessageSend(message.ChannelID, shoppingListTable); err != nil {
 		log.Error().Err(err).Msg("could not send message")
 	}
@@ -82,11 +81,11 @@ func (client *GroceryClient) groceryAction(session *discordgo.Session, message *
 	}
 }
 
-func (client *GroceryClient) removeItemFromShoppingList(content string) {
+func (bot *GroceryBot) removeItemFromShoppingList(content string) {
 	id, _ := strconv.Atoi(content)
 
 	var tempShoppingList []model.ShoppingEntry
-	for _, entry := range client.shoppingList {
+	for _, entry := range bot.shoppingList {
 		if entry.ID == id {
 			continue
 		}
@@ -94,5 +93,5 @@ func (client *GroceryClient) removeItemFromShoppingList(content string) {
 		tempShoppingList = append(tempShoppingList, entry)
 	}
 
-	client.shoppingList = tempShoppingList
+	bot.shoppingList = tempShoppingList
 }
