@@ -88,6 +88,13 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		resultTable = bot.previousShoppingListTable
 	}
 
+	if _, err := s.ApplicationCommandCreate(*AppID, *GuildID, &discordgo.ApplicationCommand{
+		Name:        "buttons",
+		Description: "Test the buttons if you got courage",
+	}); err != nil {
+		log.Error().Err(err).Msg("Cannot create button command")
+	}
+
 	// TODO edit instead of new message
 	if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
 		log.Error().Err(err).Msg("could not send message")
