@@ -24,7 +24,8 @@ func NewDiscordService() model.DiscordService {
 		log.Fatal().Err(err).Msg("error creating discord session")
 	}
 
-	session.AddHandler(service.DispatchHandler)
+	session.AddHandler(service.MessageDispatchHandler)
+	session.AddHandler(service.InteractionDispatchHandler)
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = session.Open(); err != nil {
@@ -37,12 +38,30 @@ func NewDiscordService() model.DiscordService {
 	return &service
 }
 
-func (service *DiscordService) DispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
+func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
 	switch message.ChannelID {
 	case config.Config.Discord.Channels[GroceriesChannelName]:
 		service.groceryBot.MessageEvent(session, message)
 	default:
 		log.Debug().Msg("could not dispatch message event to handler")
+	}
+}
+
+func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	switch interaction.Type {
+	//case config.Config.Discord.Channels[GroceriesChannelName]:
+	//	service.groceryBot.MessageEvent(session, message)
+	//	TODO
+	case discordgo.InteractionApplicationCommand:
+		//if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
+		//	h(s, i)
+		//}
+	case discordgo.InteractionMessageComponent:
+		//if h, ok := componentsHandlers[i.MessageComponentData().CustomID]; ok {
+		//	h(s, i)
+		//}
+	default:
+		log.Debug().Msg("could not dispatch interaction event to handler")
 	}
 }
 

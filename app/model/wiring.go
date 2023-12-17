@@ -3,7 +3,8 @@ package model
 import "github.com/bwmarrin/discordgo"
 
 type DiscordService interface {
-	DispatchHandler(*discordgo.Session, *discordgo.MessageCreate)
+	MessageDispatchHandler(*discordgo.Session, *discordgo.MessageCreate)
+	InteractionDispatchHandler(*discordgo.Session, *discordgo.InteractionCreate)
 	CloseSession()
 }
 
