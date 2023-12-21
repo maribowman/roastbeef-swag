@@ -25,7 +25,7 @@ func NewDiscordService() model.DiscordService {
 	}
 
 	session.AddHandler(service.MessageDispatchHandler)
-	session.AddHandler(service.InteractionDispatchHandler)
+	//session.AddHandler(service.InteractionDispatchHandler)
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = session.Open(); err != nil {
