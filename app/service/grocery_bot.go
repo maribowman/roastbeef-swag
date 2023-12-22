@@ -89,56 +89,50 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 	}
 
 	// TODO edit instead of new message
-	if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
-		log.Error().Err(err).Msg("could not send message")
-	}
+	//if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
+	//	log.Error().Err(err).Msg("could not send message")
+	//}
 
 	// clean up chat history
 	if err := session.ChannelMessageDelete(message.ChannelID, message.ID); err != nil {
 		log.Error().Err(err).Msg("could not delete previous message")
 	}
 
-	_, _ = session.ChannelMessageSendComplex(message.ChannelID, &discordgo.MessageSend{
+	if _, err := session.ChannelMessageSendComplex(message.ChannelID, &discordgo.MessageSend{
 		Content: resultTable,
 		Embeds:  nil,
 		TTS:     false,
 		Components: []discordgo.MessageComponent{
-			// ActionRow is a container of all buttons within the same row.
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
+
 					discordgo.Button{
-						Label:    "🥨🥑🥓",
-						Style:    discordgo.PrimaryButton,
-						Disabled: false,
-						CustomID: "add", // CustomID is a thing telling Discord which data to send when this button will be pressed.
-					},
-					discordgo.Button{
-						Label:    "🏁",
-						Style:    discordgo.PrimaryButton,
-						Disabled: false,
-						CustomID: "done",
-					},
-					discordgo.Button{
-						Label:    "✏️",
+						Emoji: discordgo.ComponentEmoji{
+							Name: "✏️",
+						},
 						Style:    discordgo.SecondaryButton,
-						Disabled: false,
 						CustomID: "edit",
 					},
 					discordgo.Button{
-						Label:    "👀",
+						Emoji: discordgo.ComponentEmoji{
+							Name: "👀",
+						},
 						Style:    discordgo.SecondaryButton,
-						Disabled: false,
 						CustomID: "undo",
+					},
+					discordgo.Button{
+						Emoji: discordgo.ComponentEmoji{
+							Name: "🏁",
+						},
+						Style:    discordgo.PrimaryButton,
+						CustomID: "done",
 					},
 				},
 			},
 		},
-		Files:           nil,
-		AllowedMentions: nil,
-		Reference:       nil,
-		File:            nil,
-		Embed:           nil,
-	})
+	}); err != nil {
+		log.Error().Err(err).Msg("could not send message")
+	}
 }
 
 func (bot *GroceryBot) ParseContent(content string) string {
