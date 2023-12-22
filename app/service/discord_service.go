@@ -25,7 +25,7 @@ func NewDiscordService() model.DiscordService {
 	}
 
 	session.AddHandler(service.MessageDispatchHandler)
-	//session.AddHandler(service.InteractionDispatchHandler)
+	session.AddHandler(service.InteractionDispatchHandler)
 	session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = session.Open(); err != nil {
@@ -57,9 +57,12 @@ func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Ses
 		//	h(s, i)
 		//}
 	case discordgo.InteractionMessageComponent:
-		//if h, ok := componentsHandlers[i.MessageComponentData().CustomID]; ok {
-		//	h(s, i)
-		//}
+		switch interaction.ChannelID {
+		case config.Config.Discord.Channels[GroceriesChannelName]:
+			service.groceryBot.InteractionEvent(session, interaction)
+		default:
+			log.Debug().Msg("could not dispatch message event to handler")
+		}
 	default:
 		log.Debug().Msg("could not dispatch interaction event to handler")
 	}

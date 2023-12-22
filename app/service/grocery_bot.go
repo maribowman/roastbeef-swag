@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
@@ -98,40 +99,16 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		log.Error().Err(err).Msg("could not delete previous message")
 	}
 
-	if _, err := session.ChannelMessageSendComplex(message.ChannelID, &discordgo.MessageSend{
-		Content: resultTable,
-		Embeds:  nil,
-		TTS:     false,
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
+	publishShoppingList(session, message.ChannelID, resultTable)
+}
 
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
-							Name: "✏️",
-						},
-						Style:    discordgo.SecondaryButton,
-						CustomID: "edit",
-					},
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
-							Name: "👀",
-						},
-						Style:    discordgo.SecondaryButton,
-						CustomID: "undo",
-					},
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
-							Name: "🏁",
-						},
-						Style:    discordgo.PrimaryButton,
-						CustomID: "done",
-					},
-				},
-			},
-		},
-	}); err != nil {
-		log.Error().Err(err).Msg("could not send message")
+func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	switch interaction.MessageComponentData().CustomID {
+	//case "edit":
+	//case "undo":
+	//case "done":
+	default:
+		publishShoppingList(session, interaction.ChannelID, model.CreateShoppingListTable(bot.shoppingList)+fmt.Sprintf("\n`%s` command", interaction.MessageComponentData().CustomID))
 	}
 }
 
@@ -163,4 +140,41 @@ func (bot *GroceryBot) removeItemFromShoppingList(content string) {
 	}
 
 	bot.shoppingList = tempShoppingList
+}
+
+func publishShoppingList(session *discordgo.Session, channelID string, shoppingList string) {
+	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+		Content: shoppingList,
+		Embeds:  nil,
+		TTS:     false,
+		Components: []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.Button{
+						Emoji: discordgo.ComponentEmoji{
+							Name: "✏️",
+						},
+						Style:    discordgo.SecondaryButton,
+						CustomID: "edit",
+					},
+					discordgo.Button{
+						Emoji: discordgo.ComponentEmoji{
+							Name: "👀",
+						},
+						Style:    discordgo.SecondaryButton,
+						CustomID: "undo",
+					},
+					discordgo.Button{
+						Emoji: discordgo.ComponentEmoji{
+							Name: "🏁",
+						},
+						Style:    discordgo.PrimaryButton,
+						CustomID: "done",
+					},
+				},
+			},
+		},
+	}); err != nil {
+		log.Error().Err(err).Msg("could not send message")
+	}
 }

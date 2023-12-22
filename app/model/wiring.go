@@ -10,5 +10,6 @@ type DiscordService interface {
 
 type DiscordBot interface {
 	MessageEvent(*discordgo.Session, *discordgo.MessageCreate)
+	InteractionEvent(*discordgo.Session, *discordgo.InteractionCreate)
 	ParseContent(string) string
 }
