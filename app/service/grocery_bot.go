@@ -5,7 +5,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/ini.v1"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,19 +15,11 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
-
-	add    = "add"
-	update = "update"
-	remove = "remove"
-	undo   = "undo"
 )
 
 var (
-	addRegex    = regexp.MustCompile("^(.*?)( [0-9]+)?$")
-	updateRegex = regexp.MustCompile("^([0-9]+)( [a-zA-Z]*)( .*)*$")
-	removeRegex = regexp.MustCompile("^(\\*( [0-9]+)*|[0-9]+( [0-9]+)*)$")
-	//removeRegex = regexp.MustCompile("^\\*[ [0-9]+]*|[0-9]+[ [0-9]+]*$")
-	undoRegex = regexp.MustCompile("^&$")
+	addRegex    = regexp.MustCompile("^(?:(\\d*)\\s)?(\\w*)?(?:\\s(\\d*))?$")
+	removeRegex = regexp.MustCompile("^(\\*)?(?:\\s?(\\d+))*(?:\\s?(\\d+-\\d+))*(?:\\s?(\\d+))*$")
 )
 
 type GroceryBot struct {
@@ -38,7 +32,7 @@ type GroceryBot struct {
 /*
  - add dynamic quantity to item
  - parse and add multiline items
- - only edit and not send/delete message
+ - only update existing shopping list message
  - parse previous table -> re-instantiate from channel
  	-> only 1 message from bot possible if implemented correctly
 */
@@ -69,25 +63,16 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 
 	// TODO getCurrentShoppingListTable()
 	var resultTable string
+	for _, line := range strings.Split(message.Content, ini.LineBreak) {
+		line = strings.TrimSpace(line)
 
-	switch bot.ParseContent(message.Content) {
-	case add:
-		// TODO iterate content for each line and parse quantity at end
-		bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
-			ID:     len(bot.shoppingList),
-			Item:   message.Content,
-			Amount: 1,
-			Date:   time.Now(),
-		})
-		resultTable = model.CreateShoppingListTable(bot.shoppingList)
-	case update:
-		resultTable = model.CreateShoppingListTable(bot.shoppingList)
-	case remove:
-		bot.removeItemFromShoppingList(message.Content)
-		resultTable = model.CreateShoppingListTable(bot.shoppingList)
-	case undo:
-		resultTable = bot.previousShoppingListTable
+		if addRegex.MatchString(line) {
+			bot.add(line)
+		} else if removeRegex.MatchString(line) {
+			bot.remove(line)
+		}
 	}
+	resultTable = model.CreateShoppingListTable(bot.shoppingList)
 
 	// TODO edit instead of new message
 	//if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
@@ -105,76 +90,95 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	switch interaction.MessageComponentData().CustomID {
 	//case "edit":
-	//case "undo":
 	//case "done":
 	default:
 		publishShoppingList(session, interaction.ChannelID, model.CreateShoppingListTable(bot.shoppingList)+fmt.Sprintf("\n`%s` command", interaction.MessageComponentData().CustomID))
 	}
 }
 
-func (bot *GroceryBot) ParseContent(content string) string {
-	strings.TrimSpace(content)
-	if updateRegex.MatchString(content) {
-		return update
+func (bot *GroceryBot) add(line string) {
+	captureGroups := addRegex.FindStringSubmatch(line)
+
+	amount := 1
+	if quantity, err := strconv.Atoi(captureGroups[1]); err == nil {
+		amount = quantity
 	}
-	if removeRegex.MatchString(content) {
-		return remove
+	if quantity, err := strconv.Atoi(captureGroups[3]); err == nil {
+		amount = quantity
 	}
-	if undoRegex.MatchString(content) {
-		return undo
-	}
-	return add
+
+	bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
+		ID:     len(bot.shoppingList) + 1,
+		Item:   captureGroups[2],
+		Amount: amount,
+		Date:   time.Now().Truncate(time.Minute),
+	})
 }
 
-func (bot *GroceryBot) removeItemFromShoppingList(content string) {
-	// TODO refactor this
-	id, _ := strconv.Atoi(content)
+func (bot *GroceryBot) remove(line string) {
+	captureGroups := removeRegex.FindStringSubmatch(line)
+
+	// remove all
+	if captureGroups[1] == "*" {
+		bot.shoppingList = []model.ShoppingEntry{}
+		return
+	}
+
+	// add single removable IDs
+	var removableIDs []int
+	if captureGroups[2] != "" {
+		for _, value := range strings.Split(captureGroups[2], " ") {
+			id, _ := strconv.Atoi(value)
+			removableIDs = append(removableIDs, id)
+		}
+	}
+
+	// add range to removable IDs
+	if captureGroups[3] != "" {
+		range_ := strings.Split(captureGroups[3], "-")
+		rangeStart, _ := strconv.Atoi(range_[0])
+		rangeEnd, _ := strconv.Atoi(range_[1])
+
+		for i := rangeStart; i <= rangeEnd; i++ {
+			removableIDs = append(removableIDs, i)
+		}
+	}
 
 	var tempShoppingList []model.ShoppingEntry
 	for _, entry := range bot.shoppingList {
-		if entry.ID == id {
+		if slices.Contains(removableIDs, entry.ID) {
 			continue
 		}
-		entry.ID = len(tempShoppingList)
+		// entry.ID = len(tempShoppingList) + 1 // TODO think about new indexes
 		tempShoppingList = append(tempShoppingList, entry)
 	}
-
 	bot.shoppingList = tempShoppingList
 }
 
 func publishShoppingList(session *discordgo.Session, channelID string, shoppingList string) {
 	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
 		Content: shoppingList,
-		Embeds:  nil,
-		TTS:     false,
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
 					discordgo.Button{
 						Emoji: discordgo.ComponentEmoji{
-							Name: "✏️",
+							Name: "📝",
 						},
 						Style:    discordgo.SecondaryButton,
 						CustomID: "edit",
 					},
 					discordgo.Button{
 						Emoji: discordgo.ComponentEmoji{
-							Name: "👀",
-						},
-						Style:    discordgo.SecondaryButton,
-						CustomID: "undo",
-					},
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
 							Name: "🏁",
 						},
-						Style:    discordgo.PrimaryButton,
+						Style:    discordgo.SecondaryButton,
 						CustomID: "done",
 					},
 				},
 			},
 		},
 	}); err != nil {
-		log.Error().Err(err).Msg("could not send message")
+		log.Error().Err(err).Msg("could not send complex message")
 	}
 }
