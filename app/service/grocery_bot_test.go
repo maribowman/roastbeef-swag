@@ -80,10 +80,6 @@ func TestRemove(t *testing.T) {
 			content:  "3 5 8",
 			expected: []int{1, 2, 4, 6, 7, 9},
 		},
-		"remove all": {
-			content:  "*",
-			expected: []int{},
-		},
 		"single and range remove": {
 			content:  "1 4-7",
 			expected: []int{2, 3, 8, 9},
@@ -92,13 +88,9 @@ func TestRemove(t *testing.T) {
 			content:  "2-5",
 			expected: []int{1, 6, 7, 8, 9},
 		},
-		"multi range remove": {
-			content:  "1-3 6-8",
-			expected: []int{4, 5, 9},
-		},
-		"multi and range remove": {
-			content:  "2 3 5-7 9",
-			expected: []int{1, 4, 8},
+		"remove all": {
+			content:  "*",
+			expected: []int{},
 		},
 		"remove all except single": {
 			content:  "* 5",

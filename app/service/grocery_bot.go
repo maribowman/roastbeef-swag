@@ -19,7 +19,7 @@ const (
 
 var (
 	addRegex    = regexp.MustCompile("^(?:(\\d*)\\s)?(\\w*)?(?:\\s(\\d*))?$")
-	removeRegex = regexp.MustCompile("^(\\*)?(?:\\s?(\\d+))*(?:\\s?(\\d+-\\d+))*(?:\\s?(\\d+))*$")
+	removeRegex = regexp.MustCompile("^(\\*)?(?:\\s?(\\d+))*(?:\\s?(\\d+-\\d+))*$")
 )
 
 type GroceryBot struct {
