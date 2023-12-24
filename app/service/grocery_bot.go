@@ -18,8 +18,10 @@ const (
 )
 
 var (
-	addRegex    = regexp.MustCompile("^(?:(\\d*)\\s)?(\\w*)?(?:\\s(\\d*))?$")
-	removeRegex = regexp.MustCompile("^(\\*)?(?:\\s?(\\d+))*(?:\\s?(\\d+-\\d+))*$")
+	addRegex                = regexp.MustCompile("^(?:(\\d*)\\s)?([a-zA-Z0-9\\s-_]*)?$")
+	addWithLeadingQuantity  = "^(\\d*)?.*"
+	addWithTrailingQuantity = "(\\d*)?$"
+	removeRegex             = regexp.MustCompile("^(\\*)?(?:(\\d+)\\s)*(?:\\s?(\\d+-\\d+))*$")
 )
 
 type GroceryBot struct {
@@ -57,12 +59,11 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 				messageIDs = append(messageIDs, msg.ID)
 			}
 		}
-		session.ChannelMessagesBulkDelete(bot.channelID, messageIDs)
+		_ = session.ChannelMessagesBulkDelete(bot.channelID, messageIDs)
 		return
 	}
 
 	// TODO getCurrentShoppingListTable()
-	var resultTable string
 	for _, line := range strings.Split(message.Content, ini.LineBreak) {
 		line = strings.TrimSpace(line)
 
@@ -70,9 +71,14 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 			bot.add(line)
 		} else if removeRegex.MatchString(line) {
 			bot.remove(line)
+		} else {
+			_, err := session.ChannelMessageSendReply(message.ChannelID, fmt.Sprintf("Cannot process input:\n> %s", message.Content), message.MessageReference)
+			if err != nil {
+				log.Error().Err(err).Msg("could not answer message")
+			}
+			return
 		}
 	}
-	resultTable = model.CreateShoppingListTable(bot.shoppingList)
 
 	// TODO edit instead of new message
 	//if _, err := session.ChannelMessageSend(message.ChannelID, resultTable); err != nil {
@@ -84,7 +90,7 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		log.Error().Err(err).Msg("could not delete previous message")
 	}
 
-	publishShoppingList(session, message.ChannelID, resultTable)
+	bot.publishShoppingList(session, message.ChannelID)
 }
 
 func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -92,7 +98,7 @@ func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction 
 	//case "edit":
 	//case "done":
 	default:
-		publishShoppingList(session, interaction.ChannelID, model.CreateShoppingListTable(bot.shoppingList)+fmt.Sprintf("\n`%s` command", interaction.MessageComponentData().CustomID))
+		bot.publishShoppingList(session, interaction.ChannelID)
 	}
 }
 
@@ -155,9 +161,9 @@ func (bot *GroceryBot) remove(line string) {
 	bot.shoppingList = tempShoppingList
 }
 
-func publishShoppingList(session *discordgo.Session, channelID string, shoppingList string) {
+func (bot *GroceryBot) publishShoppingList(session *discordgo.Session, channelID string) {
 	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content: shoppingList,
+		Content: model.CreateShoppingListTable(bot.shoppingList),
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
@@ -178,6 +184,11 @@ func publishShoppingList(session *discordgo.Session, channelID string, shoppingL
 				},
 			},
 		},
+		Files:           nil,
+		AllowedMentions: nil,
+		Reference:       nil,
+		File:            nil,
+		Embed:           nil,
 	}); err != nil {
 		log.Error().Err(err).Msg("could not send complex message")
 	}

@@ -23,6 +23,24 @@ func TestAdd(t *testing.T) {
 				Date:   time.Now().Truncate(time.Minute),
 			}},
 		},
+		"simple multi word add": {
+			content: "butter scotch",
+			expected: []model.ShoppingEntry{{
+				ID:     1,
+				Item:   "butter scotch",
+				Amount: 1,
+				Date:   time.Now().Truncate(time.Minute),
+			}},
+		},
+		"simple hyphened add": {
+			content: "dry-gin",
+			expected: []model.ShoppingEntry{{
+				ID:     1,
+				Item:   "dry-gin",
+				Amount: 1,
+				Date:   time.Now().Truncate(time.Minute),
+			}},
+		},
 		"add with trailing quantity": {
 			content: "bacon 5",
 			expected: []model.ShoppingEntry{{
