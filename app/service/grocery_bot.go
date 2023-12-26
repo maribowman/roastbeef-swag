@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
@@ -18,10 +17,9 @@ const (
 )
 
 var (
-	removeRegex             = regexp.MustCompile(`(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
-	addRegex                = regexp.MustCompile(`^(?:(\d*)\s)?([a-zA-Z0-9\s-_]*)?$`)
-	addWithLeadingQuantity  = "^(\\d*)?.*"
-	addWithTrailingQuantity = "(\\d*)?$"
+	removeRegex      = regexp.MustCompile(`(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
+	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
+	trailingQuantity = regexp.MustCompile("\\s(\\d+)$")
 )
 
 type GroceryBot struct {
@@ -32,8 +30,6 @@ type GroceryBot struct {
 }
 
 /*
- - add dynamic quantity to item
- - parse and add multiline items
  - only update existing shopping list message
  - parse previous table -> re-instantiate from channel
  	-> only 1 message from bot possible if implemented correctly
@@ -67,16 +63,10 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 	for _, line := range strings.Split(message.Content, ini.LineBreak) {
 		line = strings.TrimSpace(line)
 
-		if addRegex.MatchString(line) {
-			bot.add(line)
-		} else if removeRegex.MatchString(line) {
+		if removeRegex.MatchString(line) {
 			bot.remove(line)
 		} else {
-			_, err := session.ChannelMessageSendReply(message.ChannelID, fmt.Sprintf("Cannot process input:\n> %s", message.Content), message.MessageReference)
-			if err != nil {
-				log.Error().Err(err).Msg("could not answer message")
-			}
-			return
+			bot.add(line)
 		}
 	}
 
@@ -156,19 +146,26 @@ func (bot *GroceryBot) remove(line string) {
 }
 
 func (bot *GroceryBot) add(line string) {
-	captureGroups := addRegex.FindStringSubmatch(line)
+	leading := leadingQuantity.FindStringSubmatch(line)
+	trailing := trailingQuantity.FindStringSubmatch(line)
 
-	amount := 1
-	//if quantity, err := strconv.Atoi(captureGroups[1]); err == nil {
-	//	amount = quantity
-	//}
-	//if quantity, err := strconv.Atoi(captureGroups[3]); err == nil {
-	//	amount = quantity
-	//}
+	var quantity string
+	if leading != nil {
+		quantity = leading[1]
+		line = strings.TrimPrefix(line, quantity)
+	} else if trailing != nil {
+		quantity = trailing[1]
+		line = strings.TrimSuffix(line, quantity)
+	}
+
+	amount, err := strconv.Atoi(quantity)
+	if err != nil {
+		amount = 1
+	}
 
 	bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
 		ID:     len(bot.shoppingList) + 1,
-		Item:   captureGroups[2],
+		Item:   strings.TrimSpace(line),
 		Amount: amount,
 		Date:   time.Now().Truncate(time.Minute),
 	})
@@ -197,11 +194,6 @@ func (bot *GroceryBot) publishShoppingList(session *discordgo.Session, channelID
 				},
 			},
 		},
-		Files:           nil,
-		AllowedMentions: nil,
-		Reference:       nil,
-		File:            nil,
-		Embed:           nil,
 	}); err != nil {
 		log.Error().Err(err).Msg("could not send complex message")
 	}
