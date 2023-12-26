@@ -18,10 +18,10 @@ const (
 )
 
 var (
-	addRegex                = regexp.MustCompile("^(?:(\\d*)\\s)?([a-zA-Z0-9\\s-_]*)?$")
+	removeRegex             = regexp.MustCompile(`(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
+	addRegex                = regexp.MustCompile(`^(?:(\d*)\s)?([a-zA-Z0-9\s-_]*)?$`)
 	addWithLeadingQuantity  = "^(\\d*)?.*"
 	addWithTrailingQuantity = "(\\d*)?$"
-	removeRegex             = regexp.MustCompile("^(\\*)?(?:(\\d+)\\s)*(?:\\s?(\\d+-\\d+))*$")
 )
 
 type GroceryBot struct {
@@ -102,16 +102,69 @@ func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction 
 	}
 }
 
+func (bot *GroceryBot) remove(line string) {
+	var tempShoppingList []model.ShoppingEntry
+	removeAllExcept := false
+
+	// CAP GROUP 0: entire string
+	// CAP GROUP 1: asterisk
+	// CAP GROUP 2: range
+	captureGroups := removeRegex.FindStringSubmatch(line)
+
+	// remove all (except)
+	if captureGroups[1] == "*" {
+		removeAllExcept = true
+		if captureGroups[0] == captureGroups[1] {
+			bot.shoppingList = tempShoppingList
+			return
+		}
+	}
+
+	// add single removable IDs
+	var ids []int
+	if captureGroups[0] != captureGroups[2] {
+		for _, value := range strings.Split(captureGroups[0], " ") {
+			if id, err := strconv.Atoi(value); err == nil {
+				ids = append(ids, id)
+			}
+		}
+	}
+
+	// add range to removable IDs
+	if captureGroups[2] != "" {
+		range_ := strings.Split(captureGroups[2], "-")
+		rangeStart, _ := strconv.Atoi(range_[0])
+		rangeEnd, _ := strconv.Atoi(range_[1])
+
+		for i := rangeStart; i <= rangeEnd; i++ {
+			ids = append(ids, i)
+		}
+	}
+
+	for _, entry := range bot.shoppingList {
+		if slices.Contains(ids, entry.ID) {
+			if !removeAllExcept {
+				continue
+			}
+		} else if removeAllExcept {
+			continue
+		}
+		// entry.ID = len(tempShoppingList) + 1 // TODO think about new indexes
+		tempShoppingList = append(tempShoppingList, entry)
+	}
+	bot.shoppingList = tempShoppingList
+}
+
 func (bot *GroceryBot) add(line string) {
 	captureGroups := addRegex.FindStringSubmatch(line)
 
 	amount := 1
-	if quantity, err := strconv.Atoi(captureGroups[1]); err == nil {
-		amount = quantity
-	}
-	if quantity, err := strconv.Atoi(captureGroups[3]); err == nil {
-		amount = quantity
-	}
+	//if quantity, err := strconv.Atoi(captureGroups[1]); err == nil {
+	//	amount = quantity
+	//}
+	//if quantity, err := strconv.Atoi(captureGroups[3]); err == nil {
+	//	amount = quantity
+	//}
 
 	bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
 		ID:     len(bot.shoppingList) + 1,
@@ -119,46 +172,6 @@ func (bot *GroceryBot) add(line string) {
 		Amount: amount,
 		Date:   time.Now().Truncate(time.Minute),
 	})
-}
-
-func (bot *GroceryBot) remove(line string) {
-	captureGroups := removeRegex.FindStringSubmatch(line)
-
-	// remove all
-	if captureGroups[1] == "*" {
-		bot.shoppingList = []model.ShoppingEntry{}
-		return
-	}
-
-	// add single removable IDs
-	var removableIDs []int
-	if captureGroups[2] != "" {
-		for _, value := range strings.Split(captureGroups[2], " ") {
-			id, _ := strconv.Atoi(value)
-			removableIDs = append(removableIDs, id)
-		}
-	}
-
-	// add range to removable IDs
-	if captureGroups[3] != "" {
-		range_ := strings.Split(captureGroups[3], "-")
-		rangeStart, _ := strconv.Atoi(range_[0])
-		rangeEnd, _ := strconv.Atoi(range_[1])
-
-		for i := rangeStart; i <= rangeEnd; i++ {
-			removableIDs = append(removableIDs, i)
-		}
-	}
-
-	var tempShoppingList []model.ShoppingEntry
-	for _, entry := range bot.shoppingList {
-		if slices.Contains(removableIDs, entry.ID) {
-			continue
-		}
-		// entry.ID = len(tempShoppingList) + 1 // TODO think about new indexes
-		tempShoppingList = append(tempShoppingList, entry)
-	}
-	bot.shoppingList = tempShoppingList
 }
 
 func (bot *GroceryBot) publishShoppingList(session *discordgo.Session, channelID string) {

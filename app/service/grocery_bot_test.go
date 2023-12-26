@@ -8,6 +8,73 @@ import (
 	"time"
 )
 
+func TestRemove(t *testing.T) {
+	// given
+	tests := map[string]struct {
+		content  string
+		expected []int
+	}{
+		"single remove": {
+			content:  "7",
+			expected: []int{1, 2, 3, 4, 5, 6, 8, 9},
+		},
+		"multi remove": {
+			content:  "3 5 8",
+			expected: []int{1, 2, 4, 6, 7, 9},
+		},
+		"single and range remove": {
+			content:  "1 4-7",
+			expected: []int{2, 3, 8, 9},
+		},
+		"range remove": {
+			content:  "2-5",
+			expected: []int{1, 6, 7, 8, 9},
+		},
+		"remove all": {
+			content:  "*",
+			expected: []int{},
+		},
+		"remove all except single": {
+			content:  "* 5",
+			expected: []int{5},
+		},
+		"remove all except multi": {
+			content:  "* 5 2 8",
+			expected: []int{2, 5, 8},
+		},
+		"remove all except range": {
+			content:  "* 3-6",
+			expected: []int{3, 4, 5, 6},
+		},
+		"remove all except single and range": {
+			content:  "* 7 1-3",
+			expected: []int{1, 2, 3, 7},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// and
+			bot := GroceryBot{}
+			for i := 0; i < 9; i++ {
+				bot.add(fmt.Sprintf("item %d", i))
+			}
+
+			// when
+			bot.remove(test.content)
+
+			// and
+			actual := []int{}
+			for _, item := range bot.shoppingList {
+				actual = append(actual, item.ID)
+			}
+
+			// then
+			assert.EqualValues(t, test.expected, actual)
+		})
+	}
+}
+
 func TestAdd(t *testing.T) {
 	// given
 	tests := map[string]struct {
@@ -80,73 +147,6 @@ func TestAdd(t *testing.T) {
 
 			// then
 			assert.EqualValues(t, test.expected, bot.shoppingList)
-		})
-	}
-}
-
-func TestRemove(t *testing.T) {
-	// given
-	tests := map[string]struct {
-		content  string
-		expected []int
-	}{
-		"single remove": {
-			content:  "7",
-			expected: []int{1, 2, 3, 4, 5, 6, 8, 9},
-		},
-		"multi remove": {
-			content:  "3 5 8",
-			expected: []int{1, 2, 4, 6, 7, 9},
-		},
-		"single and range remove": {
-			content:  "1 4-7",
-			expected: []int{2, 3, 8, 9},
-		},
-		"range remove": {
-			content:  "2-5",
-			expected: []int{1, 6, 7, 8, 9},
-		},
-		"remove all": {
-			content:  "*",
-			expected: []int{},
-		},
-		"remove all except single": {
-			content:  "* 5",
-			expected: []int{5},
-		},
-		"remove all except multi": {
-			content:  "* 5 2 8",
-			expected: []int{2, 5, 8},
-		},
-		"remove all except range": {
-			content:  "* 3-6",
-			expected: []int{3, 4, 5, 6},
-		},
-		"remove all except single and range": {
-			content:  "* 7 1-3",
-			expected: []int{1, 2, 3, 7},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			// and
-			bot := GroceryBot{}
-			for i := 0; i < 9; i++ {
-				bot.add(fmt.Sprintf("item %d", i))
-			}
-
-			// when
-			bot.remove(test.content)
-
-			// and
-			actual := []int{}
-			for _, item := range bot.shoppingList {
-				actual = append(actual, item.ID)
-			}
-
-			// then
-			assert.EqualValues(t, test.expected, actual)
 		})
 	}
 }
