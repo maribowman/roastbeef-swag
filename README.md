@@ -3,26 +3,19 @@
 ![Build](https://github.com/maribowman/roastbeef-swag/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)
 
-## manage grocery list
+## organize shopping list
 
-- ___add___  
-  `bacon 4`  
-  `coffee`
+organizes the shopping list of the `groceries` channel. the bot can process single and multi line input.
 
-- ___update 0___  
-  `0 milk 2`
+- ### add: `<quantity> <item> <quantity>`
+    - `eggs 3` or `3 eggs`
+        - ```
+          coffee
+          bagels 4
+          3 croissants
+          ```
 
-- ___delete___  
-  `3`  
-  `4 5`
-
-- ___delete all (except)___  
-  `*`  
-  `* 5 2 8`
-
-- ___undo previous action___  
-  `&`  
-  _→ keep previous table string in-memory_  
-  _→ recover table from string_
-
-## publish fancy ftmo news
+- ### delete: `(*) <id> <id> <id> <id>-<id>`
+    - single delete: `5`, `2 4`
+    - range delete: `3-5`, `1 3 5-8`
+    - delete all (except): `*`, `* 2 4 6-9`
