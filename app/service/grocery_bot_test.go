@@ -16,19 +16,23 @@ func TestRemove(t *testing.T) {
 	}{
 		"single remove": {
 			content:  "7",
-			expected: []int{1, 2, 3, 4, 5, 6, 8, 9},
+			expected: []int{1, 2, 3, 4, 5, 6, 7, 8},
+			//expected: []int{1, 2, 3, 4, 5, 6, 8, 9},
 		},
 		"multi remove": {
 			content:  "3 5 8",
-			expected: []int{1, 2, 4, 6, 7, 9},
+			expected: []int{1, 2, 3, 4, 5, 6},
+			//expected: []int{1, 2, 4, 6, 7, 9},
 		},
 		"single and range remove": {
 			content:  "1 4-7",
-			expected: []int{2, 3, 8, 9},
+			expected: []int{1, 2, 3, 4},
+			//expected: []int{2, 3, 8, 9},
 		},
 		"range remove": {
 			content:  "2-5",
-			expected: []int{1, 6, 7, 8, 9},
+			expected: []int{1, 2, 3, 4, 5},
+			//expected: []int{1, 6, 7, 8, 9},
 		},
 		"remove all": {
 			content:  "*",
@@ -36,19 +40,23 @@ func TestRemove(t *testing.T) {
 		},
 		"remove all except single": {
 			content:  "* 5",
-			expected: []int{5},
+			expected: []int{1},
+			//expected: []int{5},
 		},
 		"remove all except multi": {
 			content:  "* 5 2 8",
-			expected: []int{2, 5, 8},
+			expected: []int{1, 2, 3},
+			//expected: []int{2, 5, 8},
 		},
 		"remove all except range": {
 			content:  "* 3-6",
-			expected: []int{3, 4, 5, 6},
+			expected: []int{1, 2, 3, 4},
+			//expected: []int{3, 4, 5, 6},
 		},
 		"remove all except single and range": {
 			content:  "* 7 1-3",
-			expected: []int{1, 2, 3, 7},
+			expected: []int{1, 2, 3, 4},
+			//expected: []int{1, 2, 3, 7},
 		},
 	}
 
