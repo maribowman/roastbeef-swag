@@ -17,13 +17,13 @@ func TestFromShoppingListTable(t *testing.T) {
 			table: "```md" + ini.LineBreak +
 				"| # | ITEM | QTY | ADDED  |" + ini.LineBreak +
 				"|---|------|-----|--------|" + ini.LineBreak +
-				"| 1 | test | 3   | 24.12. |" + ini.LineBreak +
+				"| 1 | test | 3   | 27.12. |" + ini.LineBreak +
 				"```",
 			expected: []ShoppingEntry{{
 				ID:     1,
 				Item:   "test",
 				Amount: 3,
-				Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
+				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 			}},
 		},
 		"multi conversion": {

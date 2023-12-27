@@ -58,7 +58,7 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		if msg.Author.ID == bot.botID {
 			if bot.lastMessage == nil {
 				bot.lastMessage = msg
-				bot.shoppingList = model.FromShoppingListTable(message.Content)
+				bot.shoppingList = model.FromShoppingListTable(msg.Content)
 				continue
 			} else if bot.lastMessage.Timestamp.After(msg.Timestamp) {
 				bot.lastMessage = msg
