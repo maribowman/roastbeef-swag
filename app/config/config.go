@@ -30,7 +30,7 @@ func loadConfig() config {
 	viper.SetConfigName(configFile)
 	viper.AddConfigPath(configPath)
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal().Err(err).Msgf("viper error while trying to read '%s' file, %s", configFile)
+		log.Fatal().Err(err).Msgf("viper error while trying to read '%s' file", configFile)
 	}
 	var config config
 	err := viper.Unmarshal(&config)

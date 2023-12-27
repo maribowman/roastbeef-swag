@@ -4,13 +4,13 @@ RUN apk update && \
 LABEL stage=builder
 WORKDIR /building-site
 COPY . /building-site
-RUN cd /building-site && \
-#    go test ./... -cover -v  && \
-    go build -o main .
+RUN cd /building-site
+RUN go build -o main .
+RUN go test ./... -cover -v
 
 FROM alpine:3.18 as production
 RUN apk update && \
     apk --no-cache add ca-certificates
 COPY --from=builder /building-site/main .
-#COPY /configs /configs/
+COPY /configs /configs/
 ENTRYPOINT ./main
