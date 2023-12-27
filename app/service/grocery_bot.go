@@ -30,12 +30,6 @@ type GroceryBot struct {
 	previousShoppingListTable string
 }
 
-/*
- - only update existing shopping list message
- - parse previous table -> re-instantiate from channel
- 	-> only 1 message from bot possible if implemented correctly
-*/
-
 func NewGroceryBot(botID string, channelID string) model.DiscordBot {
 	log.Debug().Msg("registering grocery client handler")
 	return &GroceryBot{
