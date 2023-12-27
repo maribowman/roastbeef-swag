@@ -58,7 +58,7 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		if msg.Author.ID == bot.botID {
 			if bot.lastMessage == nil {
 				bot.lastMessage = msg
-				// TODO parse shopping list from msg.content
+				bot.shoppingList = model.FromShoppingListTable(message.Content)
 				continue
 			} else if bot.lastMessage.Timestamp.After(msg.Timestamp) {
 				bot.lastMessage = msg
@@ -95,6 +95,7 @@ func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction 
 	case "done":
 		bot.shoppingList = []model.ShoppingEntry{}
 	}
+
 	bot.publish(session, interaction.ChannelID)
 }
 
@@ -181,7 +182,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session, channelID string) {
 	// edit message if exists
 	if bot.lastMessage != nil {
 		editedMessage := discordgo.NewMessageEdit(bot.lastMessage.ChannelID, bot.lastMessage.ID)
-		editedMessage.SetContent(model.CreateShoppingListTable(bot.shoppingList))
+		editedMessage.SetContent(model.ToShoppingListTable(bot.shoppingList))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 			log.Error().Err(err).Msgf("could not edit message %s", bot.lastMessage.ID)
 		}
@@ -190,7 +191,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session, channelID string) {
 
 	// send new message
 	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content: model.CreateShoppingListTable(bot.shoppingList),
+		Content: model.ToShoppingListTable(bot.shoppingList),
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
