@@ -2,7 +2,6 @@ package model
 
 import (
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 	"testing"
 	"time"
 )
@@ -11,15 +10,15 @@ func TestFromShoppingListTable(t *testing.T) {
 	// given
 	tests := map[string]struct {
 		table    string
-		expected []ShoppingEntry
+		expected []ShoppingListItem
 	}{
 		"simple conversion": {
-			table: "```md" + ini.LineBreak +
-				"| # | ITEM | QTY | ADDED  |" + ini.LineBreak +
-				"|---|------|-----|--------|" + ini.LineBreak +
-				"| 1 | test | 3   | 27.12. |" + ini.LineBreak +
+			table: "```md\n" +
+				"| # | ITEM | QTY | ADDED  |\n" +
+				"|---|------|-----|--------|\n" +
+				"| 1 | test | 3   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingEntry{{
+			expected: []ShoppingListItem{{
 				ID:     1,
 				Item:   "test",
 				Amount: 3,
@@ -27,15 +26,15 @@ func TestFromShoppingListTable(t *testing.T) {
 			}},
 		},
 		"multi conversion": {
-			table: "```md" + ini.LineBreak +
-				"| # |  ITEM  | QTY | ADDED  |" + ini.LineBreak +
-				"|---|--------|-----|--------|" + ini.LineBreak +
-				"| 1 | eggs   | 4   | 24.12. |" + ini.LineBreak +
-				"| 2 | coffee | 1   | 25.12. |" + ini.LineBreak +
-				"| 3 | bacon  | 3   | 26.12. |" + ini.LineBreak +
-				"| 4 | milk   | 1   | 27.12. |" + ini.LineBreak +
+			table: "```md\n" +
+				"| # |  ITEM  | QTY | ADDED  |\n" +
+				"|---|--------|-----|--------|\n" +
+				"| 1 | eggs   | 4   | 24.12. |\n" +
+				"| 2 | coffee | 1   | 25.12. |\n" +
+				"| 3 | bacon  | 3   | 26.12. |\n" +
+				"| 4 | milk   | 1   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingEntry{{
+			expected: []ShoppingListItem{{
 				ID:     1,
 				Item:   "eggs",
 				Amount: 4,

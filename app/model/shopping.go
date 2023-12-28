@@ -3,32 +3,51 @@ package model
 import (
 	"bytes"
 	"github.com/olekukonko/tablewriter"
-	"gopkg.in/ini.v1"
+	"github.com/rs/zerolog/log"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type ShoppingEntry struct {
+type ShoppingListItem struct {
 	ID     int
 	Item   string
 	Amount int
 	Date   time.Time
 }
 
-func ToShoppingListTable(shoppingList []ShoppingEntry) string {
+func ToShoppingList(items []ShoppingListItem) string {
+	var shoppingList string
+	for index, item := range items {
+		if index != 0 {
+			shoppingList += "\n"
+		}
+		shoppingList += item.Item
+		if item.Amount > 1 {
+			shoppingList += "\t" + "\t" + strconv.Itoa(item.Amount)
+		}
+	}
+	log.Info().Msg(shoppingList)
+	return shoppingList
+}
+
+func FromShoppingList(shoppingList string) []ShoppingListItem {
+	return []ShoppingListItem{}
+}
+
+func ToShoppingListTable(items []ShoppingListItem) string {
 	var data [][]string
-	for _, entry := range shoppingList {
+	for _, item := range items {
 		data = append(data, []string{
-			strconv.Itoa(entry.ID),
-			entry.Item,
-			strconv.Itoa(entry.Amount),
-			entry.Date.Format("02.01.")},
+			strconv.Itoa(item.ID),
+			item.Item,
+			strconv.Itoa(item.Amount),
+			item.Date.Format("02.01.")},
 		)
 	}
 
 	writer := bytes.Buffer{}
-	writer.WriteString("```md" + ini.LineBreak)
+	writer.WriteString("```md\n")
 
 	table := tablewriter.NewWriter(&writer)
 	table.SetHeader([]string{"#", "ITEM", "QTY", "ADDED"})
@@ -44,9 +63,9 @@ func ToShoppingListTable(shoppingList []ShoppingEntry) string {
 	return writer.String()
 }
 
-func FromShoppingListTable(table string) []ShoppingEntry {
-	var result []ShoppingEntry
-	splitTable := strings.Split(table, ini.LineBreak)
+func FromShoppingListTable(table string) []ShoppingListItem {
+	var result []ShoppingListItem
+	splitTable := strings.Split(table, "\n")
 
 	for index, item := range splitTable {
 		if index <= 2 || index == len(splitTable)-1 {
@@ -58,7 +77,7 @@ func FromShoppingListTable(table string) []ShoppingEntry {
 		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
 		date, _ := time.Parse("02.01.", strings.TrimSpace(splitItem[4]))
 
-		result = append(result, ShoppingEntry{
+		result = append(result, ShoppingListItem{
 			ID:     id,
 			Item:   strings.TrimSpace(splitItem[2]),
 			Amount: amount,
