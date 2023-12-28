@@ -13,11 +13,6 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
-
-	EditButton     = "edit-button"
-	DoneButton     = "done-button"
-	EditModal      = "edit-modal"
-	EditModalInput = "edit-modal-input"
 )
 
 var (
@@ -101,18 +96,18 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
-	case EditButton:
+	case "edit-button":
 		// TODO send modal to edit list
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
-				CustomID: EditModal + interaction.Interaction.Member.User.ID,
+				CustomID: "edit-modal-" + interaction.Interaction.Member.User.ID,
 				Title:    "Edit grocery list",
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
 							discordgo.TextInput{
-								CustomID: EditModalInput,
+								CustomID: "edit-modal-input",
 								Style:    discordgo.TextInputParagraph,
 								Value:    model.ToShoppingList(bot.shoppingList),
 							},
@@ -121,8 +116,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 				},
 			},
 		}
-		break
-	case DoneButton:
+	case "done-button":
 		bot.shoppingList = []model.ShoppingListItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
@@ -131,13 +125,20 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 				Components: createMessageButtons(),
 			},
 		}
-		break
+	default:
+		log.Error().Msgf("could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
 
 	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
-func (bot *GroceryBot) ModalSubmitInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate) {
+func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	switch interaction.ModalSubmitData().CustomID {
+	case "edit-modal-input":
+		// TODO use modal input
+	default:
+		log.Error().Msgf("could not map modal submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
+	}
 }
 
 func (bot *GroceryBot) remove(line string) {
@@ -247,14 +248,14 @@ func createMessageButtons() []discordgo.MessageComponent {
 						Name: "📝",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: EditButton,
+					CustomID: "edit-button",
 				},
 				discordgo.Button{
 					Emoji: discordgo.ComponentEmoji{
 						Name: "🏁",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: DoneButton,
+					CustomID: "done-button",
 				},
 			},
 		},
