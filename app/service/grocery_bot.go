@@ -25,7 +25,6 @@ var (
 type GroceryBot struct {
 	botID                     string
 	channelID                 string
-	lastMessage               *discordgo.Message
 	shoppingList              []model.ShoppingEntry
 	previousShoppingListTable string
 }
@@ -47,17 +46,18 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 	if err != nil {
 		return
 	}
+	var lastMessage *discordgo.Message
 	removableMessageIDs := []string{message.ID}
 	for _, msg := range channelMessages {
 		if msg.Author.ID == bot.botID {
-			if bot.lastMessage == nil {
-				bot.lastMessage = msg
+			if lastMessage == nil {
+				lastMessage = msg
 				bot.shoppingList = model.FromShoppingListTable(msg.Content)
 				continue
-			} else if bot.lastMessage.Timestamp.After(msg.Timestamp) {
-				bot.lastMessage = msg
-				continue
-			} else if bot.lastMessage.ID == msg.ID {
+			} else if lastMessage.Timestamp.After(msg.Timestamp) {
+				removableMessageIDs = append(removableMessageIDs, lastMessage.ID)
+				lastMessage = msg
+				bot.shoppingList = model.FromShoppingListTable(msg.Content)
 				continue
 			}
 		}
@@ -66,6 +66,9 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 
 	for _, line := range strings.Split(message.Content, ini.LineBreak) {
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 
 		if removeRegex.MatchString(line) {
 			bot.remove(line)
@@ -78,19 +81,51 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		log.Error().Err(err).Msg("could not bulk delete channel messages")
 	}
 
-	bot.publish(session, message.ChannelID)
+	bot.publish(session, lastMessage)
 }
 
-func (bot *GroceryBot) InteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (bot *GroceryBot) InteractionEvent(session *discordgo.Session,
+	interaction *discordgo.InteractionCreate) {
+	var response *discordgo.InteractionResponse
+
 	switch interaction.MessageComponentData().CustomID {
 	case "edit":
 		// TODO send modal to edit list
+		response = &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseModal,
+			Data: &discordgo.InteractionResponseData{
+				Content: "TEST TEST",
+				//Components: []discordgo.MessageComponent{
+				//	discordgo.SelectMenu{
+				//		MenuType:     0,
+				//		CustomID:     "",
+				//		Placeholder:  "",
+				//		MinValues:    nil,
+				//		MaxValues:    0,
+				//		Options:      nil,
+				//		Disabled:     false,
+				//		ChannelTypes: nil,
+				//	},
+				//},
+				//Flags:           0,
+				CustomID: "edit_modal_" + interaction.Member.Nick,
+				Title:    "Edit shopping list",
+			},
+		}
 		break
 	case "done":
 		bot.shoppingList = []model.ShoppingEntry{}
+		response = &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Content:    model.ToShoppingListTable(bot.shoppingList),
+				Components: createMessageButtons(),
+			},
+		}
+		break
 	}
 
-	bot.publish(session, interaction.ChannelID)
+	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
 func (bot *GroceryBot) remove(line string) {
@@ -172,41 +207,44 @@ func (bot *GroceryBot) add(line string) {
 	})
 }
 
-func (bot *GroceryBot) publish(session *discordgo.Session, channelID string) {
-	// edit message if exists
-	if bot.lastMessage != nil {
-		editedMessage := discordgo.NewMessageEdit(bot.lastMessage.ChannelID, bot.lastMessage.ID)
+func (bot *GroceryBot) publish(session *discordgo.Session,
+	lastMessage *discordgo.Message) {
+	if lastMessage != nil {
+		editedMessage := discordgo.NewMessageEdit(bot.channelID, lastMessage.ID)
 		editedMessage.SetContent(model.ToShoppingListTable(bot.shoppingList))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
-			log.Error().Err(err).Msgf("could not edit message %s", bot.lastMessage.ID)
+			log.Error().Err(err).Msgf("could not edit message %s", lastMessage.ID)
 		}
 		return
 	}
 
-	// send new message
-	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content: model.ToShoppingListTable(bot.shoppingList),
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
-							Name: "📝",
-						},
-						Style:    discordgo.SecondaryButton,
-						CustomID: "edit",
+	if _, err := session.ChannelMessageSendComplex(bot.channelID, &discordgo.MessageSend{
+		Content:    model.ToShoppingListTable(bot.shoppingList),
+		Components: createMessageButtons(),
+	}); err != nil {
+		log.Error().Err(err).Msg("could not send complex message")
+	}
+}
+
+func createMessageButtons() []discordgo.MessageComponent {
+	return []discordgo.MessageComponent{
+		discordgo.ActionsRow{
+			Components: []discordgo.MessageComponent{
+				discordgo.Button{
+					Emoji: discordgo.ComponentEmoji{
+						Name: "📝",
 					},
-					discordgo.Button{
-						Emoji: discordgo.ComponentEmoji{
-							Name: "🏁",
-						},
-						Style:    discordgo.SecondaryButton,
-						CustomID: "done",
+					Style:    discordgo.SecondaryButton,
+					CustomID: "edit",
+				},
+				discordgo.Button{
+					Emoji: discordgo.ComponentEmoji{
+						Name: "🏁",
 					},
+					Style:    discordgo.SecondaryButton,
+					CustomID: "done",
 				},
 			},
 		},
-	}); err != nil {
-		log.Error().Err(err).Msg("could not send complex message")
 	}
 }
