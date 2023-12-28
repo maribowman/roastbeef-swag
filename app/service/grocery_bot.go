@@ -4,7 +4,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/ini.v1"
 	"regexp"
 	"slices"
 	"strconv"
@@ -14,6 +13,11 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
+
+	EditButton     = "edit-button"
+	DoneButton     = "done-button"
+	EditModal      = "edit-modal"
+	EditModalInput = "edit-modal-input"
 )
 
 var (
@@ -25,7 +29,7 @@ var (
 type GroceryBot struct {
 	botID                     string
 	channelID                 string
-	shoppingList              []model.ShoppingEntry
+	shoppingList              []model.ShoppingListItem
 	previousShoppingListTable string
 }
 
@@ -35,6 +39,10 @@ func NewGroceryBot(botID string, channelID string) model.DiscordBot {
 		botID:     botID,
 		channelID: channelID,
 	}
+}
+
+func (bot *GroceryBot) ReadyEvent(*discordgo.Session, *discordgo.Ready) {
+	// TODO impl bootstrap init
 }
 
 func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -60,11 +68,13 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 				bot.shoppingList = model.FromShoppingListTable(msg.Content)
 				continue
 			}
+		} else {
+			message.Content += "\n" + msg.Content
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
 
-	for _, line := range strings.Split(message.Content, ini.LineBreak) {
+	for _, line := range strings.Split(message.Content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -84,37 +94,33 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 	bot.publish(session, lastMessage)
 }
 
-func (bot *GroceryBot) InteractionEvent(session *discordgo.Session,
-	interaction *discordgo.InteractionCreate) {
+func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
-	case "edit":
+	case EditButton:
 		// TODO send modal to edit list
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
-				Content: "TEST TEST",
-				//Components: []discordgo.MessageComponent{
-				//	discordgo.SelectMenu{
-				//		MenuType:     0,
-				//		CustomID:     "",
-				//		Placeholder:  "",
-				//		MinValues:    nil,
-				//		MaxValues:    0,
-				//		Options:      nil,
-				//		Disabled:     false,
-				//		ChannelTypes: nil,
-				//	},
-				//},
-				//Flags:           0,
-				CustomID: "edit_modal_" + interaction.Member.Nick,
-				Title:    "Edit shopping list",
+				CustomID: EditModal + interaction.Interaction.Member.User.ID,
+				Title:    "Edit grocery list",
+				Components: []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.TextInput{
+								CustomID: EditModalInput,
+								Style:    discordgo.TextInputParagraph,
+								Value:    model.ToShoppingList(bot.shoppingList),
+							},
+						},
+					},
+				},
 			},
 		}
 		break
-	case "done":
-		bot.shoppingList = []model.ShoppingEntry{}
+	case DoneButton:
+		bot.shoppingList = []model.ShoppingListItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -128,8 +134,11 @@ func (bot *GroceryBot) InteractionEvent(session *discordgo.Session,
 	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
+func (bot *GroceryBot) ModalSubmitInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate) {
+}
+
 func (bot *GroceryBot) remove(line string) {
-	var tempShoppingList []model.ShoppingEntry
+	var tempShoppingList []model.ShoppingListItem
 	removeAllExcept := false
 
 	// CAPTURE GROUP 0: entire string
@@ -199,7 +208,7 @@ func (bot *GroceryBot) add(line string) {
 		amount = 1
 	}
 
-	bot.shoppingList = append(bot.shoppingList, model.ShoppingEntry{
+	bot.shoppingList = append(bot.shoppingList, model.ShoppingListItem{
 		ID:     len(bot.shoppingList) + 1,
 		Item:   strings.TrimSpace(line),
 		Amount: amount,
@@ -235,14 +244,14 @@ func createMessageButtons() []discordgo.MessageComponent {
 						Name: "📝",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: "edit",
+					CustomID: EditButton,
 				},
 				discordgo.Button{
 					Emoji: discordgo.ComponentEmoji{
 						Name: "🏁",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: "done",
+					CustomID: DoneButton,
 				},
 			},
 		},
