@@ -14,7 +14,6 @@ type DiscordService struct {
 }
 
 func NewDiscordService() model.DiscordService {
-	service := DiscordService{}
 	tokenBytes, err := base64.StdEncoding.DecodeString(config.Config.Discord.Token)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not decode token")
@@ -24,18 +23,27 @@ func NewDiscordService() model.DiscordService {
 		log.Fatal().Err(err).Msg("error creating discord session")
 	}
 
-	session.AddHandler(service.MessageDispatchHandler)
-	session.AddHandler(service.InteractionDispatchHandler)
-	session.Identify.Intents = discordgo.IntentsGuildMessages
+	service := DiscordService{
+		session: session,
+		// bots: []model.DiscordBot{}, // TODO accumulate bots as kv-pairs (name, discord-bot)
+		groceryBot: NewGroceryBot(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannelName]),
+	}
 
-	if err = session.Open(); err != nil {
+	service.session.AddHandler(service.ReadyHandler)
+	service.session.AddHandler(service.MessageDispatchHandler)
+	service.session.AddHandler(service.InteractionDispatchHandler)
+	//session.Identify.Intents = discordgo.IntentsGuildMessages
+
+	if err = service.session.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open discord session")
 	}
 
-	service.session = session
-	service.groceryBot = NewGroceryBot(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannelName])
-
 	return &service
+}
+
+func (service *DiscordService) ReadyHandler(session *discordgo.Session, ready *discordgo.Ready) {
+	service.groceryBot.ReadyEvent(session, ready)
+	log.Info().Msg("Bot is up!")
 }
 
 func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -48,21 +56,22 @@ func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session
 }
 
 func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	var bot model.DiscordBot
+	switch interaction.ChannelID {
+	case config.Config.Discord.Channels[GroceriesChannelName]:
+		bot = service.groceryBot
+	default:
+		log.Debug().Msg("could not dispatch interaction event on message to handler")
+		return
+	}
+
 	switch interaction.Type {
-	//case config.Config.Discord.Channels[GroceriesChannelName]:
-	//	service.groceryBot.MessageEvent(session, message)
-	//	TODO
 	case discordgo.InteractionApplicationCommand:
-		//if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
-		//	h(s, i)
-		//}
+		// slash commands
 	case discordgo.InteractionMessageComponent:
-		switch interaction.ChannelID {
-		case config.Config.Discord.Channels[GroceriesChannelName]:
-			service.groceryBot.InteractionEvent(session, interaction)
-		default:
-			log.Debug().Msg("could not dispatch message event to handler")
-		}
+		bot.MessageComponentInteractionEvent(session, interaction)
+	case discordgo.InteractionModalSubmit:
+		bot.ModalSubmitInteractionEvent(session, interaction)
 	default:
 		log.Debug().Msg("could not dispatch interaction event to handler")
 	}
