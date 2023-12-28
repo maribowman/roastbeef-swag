@@ -43,7 +43,7 @@ func NewDiscordService() model.DiscordService {
 
 func (service *DiscordService) ReadyHandler(session *discordgo.Session, ready *discordgo.Ready) {
 	service.groceryBot.ReadyEvent(session, ready)
-	log.Info().Msg("Bot is up!")
+	log.Info().Msg("bot is up!")
 }
 
 func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {

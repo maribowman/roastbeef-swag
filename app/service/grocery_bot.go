@@ -41,8 +41,8 @@ func NewGroceryBot(botID string, channelID string) model.DiscordBot {
 	}
 }
 
-func (bot *GroceryBot) ReadyEvent(*discordgo.Session, *discordgo.Ready) {
-	// TODO impl bootstrap init
+func (bot *GroceryBot) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
+	bot.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 }
 
 func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -50,12 +50,15 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		return
 	}
 
-	channelMessages, err := session.ChannelMessages(message.ChannelID, 100, message.ID, "", "")
+	channelMessages, err := session.ChannelMessages(bot.channelID, 100, "", "", "")
 	if err != nil {
 		return
 	}
+
 	var lastMessage *discordgo.Message
-	removableMessageIDs := []string{message.ID}
+	var content string
+	var removableMessageIDs []string
+
 	for _, msg := range channelMessages {
 		if msg.Author.ID == bot.botID {
 			if lastMessage == nil {
@@ -69,12 +72,12 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 				continue
 			}
 		} else {
-			message.Content += "\n" + msg.Content
+			content += "\n" + msg.Content
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
 
-	for _, line := range strings.Split(message.Content, "\n") {
+	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -87,7 +90,7 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		}
 	}
 
-	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
+	if err := session.ChannelMessagesBulkDelete(bot.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("could not bulk delete channel messages")
 	}
 
