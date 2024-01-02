@@ -2,8 +2,10 @@ package model
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/olekukonko/tablewriter"
 	"github.com/rs/zerolog/log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,17 +24,31 @@ func ToShoppingList(items []ShoppingListItem) string {
 		if index != 0 {
 			shoppingList += "\n"
 		}
-		shoppingList += item.Item
+		shoppingList += fmt.Sprintf("[%d] %s", index+1, item.Item)
 		if item.Amount > 1 {
-			shoppingList += "\t" + "\t" + strconv.Itoa(item.Amount)
+			shoppingList += "\t" + "\t, " + strconv.Itoa(item.Amount)
 		}
 	}
 	log.Info().Msg(shoppingList)
 	return shoppingList
 }
 
-func FromShoppingList(shoppingList string) []ShoppingListItem {
-	return []ShoppingListItem{}
+func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string) []ShoppingListItem {
+	listNumberPrefixRegex := regexp.MustCompile(`^\[\d+]\s`)
+	for _, update := range strings.Split(updatedList, "\n") {
+		updateSplit := strings.Split(update, ",")
+
+		item := strings.TrimSpace(listNumberPrefixRegex.ReplaceAllString(updateSplit[0], ""))
+
+		// TODO edit item by ID and add new items if there is no `[ID]` specified
+		shoppingList[0].Item = item
+		if len(updateSplit) == 2 {
+			if amount, err := strconv.Atoi(strings.TrimSpace(updateSplit[1])); err == nil {
+				shoppingList[0].Amount = amount
+			}
+		}
+	}
+	return shoppingList
 }
 
 func ToShoppingListTable(items []ShoppingListItem) string {

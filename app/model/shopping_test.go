@@ -6,6 +6,41 @@ import (
 	"time"
 )
 
+func TestUpdateFromShoppingList(t *testing.T) {
+	// given
+	tests := map[string]struct {
+		shoppingList []ShoppingListItem
+		update       string
+		expected     []ShoppingListItem
+	}{
+		"simple quantity update": {
+			shoppingList: []ShoppingListItem{{
+				ID:     1,
+				Item:   "bacon",
+				Amount: 1,
+				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+			}},
+			update: "[1] bacon\t\t, 3",
+			expected: []ShoppingListItem{{
+				ID:     1,
+				Item:   "bacon",
+				Amount: 3,
+				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+			}},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			actual := UpdateFromShoppingList(test.shoppingList, test.update)
+
+			// then
+			assert.EqualValues(t, test.expected, actual)
+		})
+	}
+}
+
 func TestFromShoppingListTable(t *testing.T) {
 	// given
 	tests := map[string]struct {
