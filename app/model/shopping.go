@@ -34,17 +34,29 @@ func ToShoppingList(items []ShoppingListItem) string {
 }
 
 func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string) []ShoppingListItem {
-	listNumberPrefixRegex := regexp.MustCompile(`^\[\d+]\s`)
+	idPrefixRegex := regexp.MustCompile(`^\[(\d+)]\s`)
 	for _, update := range strings.Split(updatedList, "\n") {
 		updateSplit := strings.Split(update, ",")
 
-		item := strings.TrimSpace(listNumberPrefixRegex.ReplaceAllString(updateSplit[0], ""))
+		rawID := idPrefixRegex.FindStringSubmatch(updateSplit[0])
+		item := strings.TrimSpace(idPrefixRegex.ReplaceAllString(updateSplit[0], ""))
 
-		// TODO edit item by ID and add new items if there is no `[ID]` specified
-		shoppingList[0].Item = item
+		var id int
+		if len(rawID) == 2 { // matches full string + capture group
+			id, _ = strconv.Atoi(rawID[1])
+		} else {
+			id = len(shoppingList) + 1
+			shoppingList = append(shoppingList, ShoppingListItem{
+				ID:   id,
+				Date: time.Now().Truncate(time.Minute),
+			})
+		}
+
+		shoppingList[id-1].Item = item
+		shoppingList[id-1].Amount = 1
 		if len(updateSplit) == 2 {
 			if amount, err := strconv.Atoi(strings.TrimSpace(updateSplit[1])); err == nil {
-				shoppingList[0].Amount = amount
+				shoppingList[id-1].Amount = amount
 			}
 		}
 	}

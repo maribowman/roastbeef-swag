@@ -14,19 +14,119 @@ func TestUpdateFromShoppingList(t *testing.T) {
 		expected     []ShoppingListItem
 	}{
 		"simple quantity update": {
-			shoppingList: []ShoppingListItem{{
-				ID:     1,
-				Item:   "bacon",
-				Amount: 1,
-				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-			}},
+			shoppingList: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
 			update: "[1] bacon\t\t, 3",
-			expected: []ShoppingListItem{{
-				ID:     1,
-				Item:   "bacon",
-				Amount: 3,
-				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-			}},
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"simple item update": {
+			shoppingList: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "bac",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}},
+			update: "[1] bacon\t\t, 3",
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"complex update": {
+			shoppingList: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "coffee",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "eggz",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "[1] bacon\n[2] eggs\t\t,2\n[3] milk",
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"complex update + added items": {
+			shoppingList: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "eggos",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "bacon\n[1] eggs\t\t,2\n[2] milk\nbeer,6",
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Now().Truncate(time.Minute),
+				}, {
+					ID:     4,
+					Item:   "beer",
+					Amount: 6,
+					Date:   time.Now().Truncate(time.Minute),
+				},
+			},
 		},
 	}
 
@@ -53,12 +153,14 @@ func TestFromShoppingListTable(t *testing.T) {
 				"|---|------|-----|--------|\n" +
 				"| 1 | test | 3   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingListItem{{
-				ID:     1,
-				Item:   "test",
-				Amount: 3,
-				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-			}},
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "test",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
 		},
 		"multi conversion": {
 			table: "```md\n" +
@@ -69,27 +171,29 @@ func TestFromShoppingListTable(t *testing.T) {
 				"| 3 | bacon  | 3   | 26.12. |\n" +
 				"| 4 | milk   | 1   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingListItem{{
-				ID:     1,
-				Item:   "eggs",
-				Amount: 4,
-				Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
-			}, {
-				ID:     2,
-				Item:   "coffee",
-				Amount: 1,
-				Date:   time.Date(time.Now().Year(), 12, 25, 0, 0, 0, 0, time.Local),
-			}, {
-				ID:     3,
-				Item:   "bacon",
-				Amount: 3,
-				Date:   time.Date(time.Now().Year(), 12, 26, 0, 0, 0, 0, time.Local),
-			}, {
-				ID:     4,
-				Item:   "milk",
-				Amount: 1,
-				Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-			}},
+			expected: []ShoppingListItem{
+				{
+					ID:     1,
+					Item:   "eggs",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "coffee",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 25, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 26, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     4,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
 		},
 	}
 
