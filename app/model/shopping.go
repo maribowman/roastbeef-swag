@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var idPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
+
 type ShoppingListItem struct {
 	ID     int
 	Item   string
@@ -34,7 +36,6 @@ func ToShoppingList(items []ShoppingListItem) string {
 }
 
 func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string) []ShoppingListItem {
-	idPrefixRegex := regexp.MustCompile(`^\[(\d+)]\s`)
 	for _, update := range strings.Split(updatedList, "\n") {
 		updateSplit := strings.Split(update, ",")
 
