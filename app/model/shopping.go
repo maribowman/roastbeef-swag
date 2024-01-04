@@ -35,8 +35,11 @@ func ToShoppingList(items []ShoppingListItem) string {
 
 func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string) []ShoppingListItem {
 	for _, update := range strings.Split(updatedList, "\n") {
-		updateSplit := strings.Split(update, ",")
+		if strings.TrimSpace(update) == "" {
+			continue
+		}
 
+		updateSplit := strings.Split(update, ",")
 		rawID := idPrefixRegex.FindStringSubmatch(updateSplit[0])
 		item := strings.TrimSpace(idPrefixRegex.ReplaceAllString(updateSplit[0], ""))
 

@@ -69,7 +69,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
 			},
-			update: "[1] bacon\n[2] eggs\t\t,2\n[3] milk",
+			update: "[1] bacon\n[2] eggs\t\t,2\n\n[3] milk",
 			expected: []ShoppingListItem{
 				{
 					ID:     1,
