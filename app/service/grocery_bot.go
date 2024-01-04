@@ -137,13 +137,26 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 }
 
 func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	var response *discordgo.InteractionResponse
+
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		// TODO use modal input
-		//interaction.ModalSubmitData().Components[0]
+		bot.shoppingList = model.UpdateFromShoppingList(
+			bot.shoppingList,
+			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
+		)
+		response = &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Content:    model.ToShoppingListTable(bot.shoppingList),
+				Components: createMessageButtons(),
+			},
+		}
 	default:
 		log.Error().Msgf("Could not map modal-submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
 	}
+
+	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
 func (bot *GroceryBot) remove(line string) {

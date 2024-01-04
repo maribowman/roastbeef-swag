@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
-	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,7 +30,6 @@ func ToShoppingList(items []ShoppingListItem) string {
 			shoppingList += "\t" + "\t, " + strconv.Itoa(item.Amount)
 		}
 	}
-	log.Info().Msg(shoppingList)
 	return shoppingList
 }
 
