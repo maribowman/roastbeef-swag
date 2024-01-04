@@ -16,11 +16,11 @@ type DiscordService struct {
 func NewDiscordService() model.DiscordService {
 	tokenBytes, err := base64.StdEncoding.DecodeString(config.Config.Discord.Token)
 	if err != nil {
-		log.Fatal().Err(err).Msg("could not decode token")
+		log.Fatal().Err(err).Msg("Could not decode token")
 	}
 	session, err := discordgo.New("Bot " + string(tokenBytes))
 	if err != nil {
-		log.Fatal().Err(err).Msg("error creating discord session")
+		log.Fatal().Err(err).Msg("Error creating discord session")
 	}
 
 	service := DiscordService{
@@ -32,10 +32,9 @@ func NewDiscordService() model.DiscordService {
 	service.session.AddHandler(service.ReadyHandler)
 	service.session.AddHandler(service.MessageDispatchHandler)
 	service.session.AddHandler(service.InteractionDispatchHandler)
-	//session.Identify.Intents = discordgo.IntentsGuildMessages
 
 	if err = service.session.Open(); err != nil {
-		log.Fatal().Err(err).Msg("could not open discord session")
+		log.Fatal().Err(err).Msg("Could not open discord session")
 	}
 
 	return &service
@@ -43,7 +42,7 @@ func NewDiscordService() model.DiscordService {
 
 func (service *DiscordService) ReadyHandler(session *discordgo.Session, ready *discordgo.Ready) {
 	service.groceryBot.ReadyEvent(session, ready)
-	log.Info().Msg("bot is up!")
+	log.Info().Msg("Bot is up!")
 }
 
 func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -51,7 +50,7 @@ func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session
 	case config.Config.Discord.Channels[GroceriesChannelName]:
 		service.groceryBot.MessageEvent(session, message)
 	default:
-		log.Debug().Msg("could not dispatch message event to handler")
+		log.Debug().Msg("Could not dispatch message event")
 	}
 }
 
@@ -61,7 +60,7 @@ func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Ses
 	case config.Config.Discord.Channels[GroceriesChannelName]:
 		bot = service.groceryBot
 	default:
-		log.Debug().Msg("could not dispatch interaction event on message to handler")
+		log.Debug().Msgf("Could not match handler for interaction event on channel `%s`", interaction.ChannelID)
 		return
 	}
 
@@ -73,12 +72,12 @@ func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Ses
 	case discordgo.InteractionModalSubmit:
 		bot.ModalSubmitInteractionEvent(session, interaction)
 	default:
-		log.Debug().Msg("could not dispatch interaction event to handler")
+		log.Debug().Msgf("Could not dispatch interaction event with type `%s`", interaction.Type)
 	}
 }
 
 func (service *DiscordService) CloseSession() {
 	if err := service.session.Close(); err != nil {
-		log.Error().Err(err).Msg("could not close discord session")
+		log.Error().Err(err).Msg("Could not close discord session")
 	}
 }

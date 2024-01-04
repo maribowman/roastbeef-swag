@@ -27,17 +27,20 @@ func loadConfig() config {
 			configPath = subStringAfterBefore(pwd, "app") + "/configs"
 		}
 	}
+
 	viper.SetConfigName(configFile)
 	viper.AddConfigPath(configPath)
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal().Err(err).Msgf("viper error while trying to read '%s' file", configFile)
+		log.Fatal().Err(err).Msgf("Viper error while trying to read config `%s`", configFile)
 	}
+
 	var config config
 	err := viper.Unmarshal(&config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("unable to decode config into struct")
+		log.Fatal().Err(err).Msg("Unable to decode config into struct")
 	}
-	log.Info().Msgf("starting service in %s mode", configFile)
+
+	log.Info().Msgf("Starting service in %s mode", configFile)
 	return config
 }
 

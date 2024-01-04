@@ -33,18 +33,18 @@ func initLogger() {
 	}
 	zerolog.SetGlobalLevel(level)
 	log.Logger = logger
-	log.Info().Msgf("logging on %v level", level)
+	log.Info().Msgf("Logging on %v level", level)
 }
 
 func main() {
 	server, service, err := app.InitServer()
-	log.Info().Msgf("running server on port %d", config.Config.Server.Port)
+	log.Info().Msgf("Running server on port %d", config.Config.Server.Port)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to init server")
+		log.Fatal().Err(err).Msg("Failed to init server")
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal().Err(err).Msg("failed to boot server")
+			log.Fatal().Err(err).Msg("Failed to boot server")
 		}
 	}()
 
@@ -55,6 +55,6 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatal().Err(err).Msg("server forced to shutdown")
+		log.Fatal().Err(err).Msg("Server forced to shutdown")
 	}
 }

@@ -13,6 +13,11 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
+
+	EditButton     = "edit-button"
+	DoneButton     = "done-button"
+	EditModal      = "edit-modal"
+	EditModalInput = "edit-modal-input"
 )
 
 var (
@@ -29,7 +34,7 @@ type GroceryBot struct {
 }
 
 func NewGroceryBot(botID string, channelID string) model.DiscordBot {
-	log.Debug().Msg("registering grocery client handler")
+	log.Debug().Msg("Registering grocery client handler")
 	return &GroceryBot{
 		botID:     botID,
 		channelID: channelID,
@@ -96,18 +101,17 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
-	case "edit-button":
-		// TODO send modal to edit list
+	case EditButton:
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
-				CustomID: "edit-modal-" + interaction.Interaction.Member.User.ID,
+				CustomID: EditModal,
 				Title:    "Edit grocery list",
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
 							discordgo.TextInput{
-								CustomID: "edit-modal-input",
+								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
 								Value:    model.ToShoppingList(bot.shoppingList),
 							},
@@ -116,7 +120,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 				},
 			},
 		}
-	case "done-button":
+	case DoneButton:
 		bot.shoppingList = []model.ShoppingListItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
@@ -126,7 +130,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 			},
 		}
 	default:
-		log.Error().Msgf("could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
+		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
 
 	_ = session.InteractionRespond(interaction.Interaction, response)
@@ -134,10 +138,11 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 
 func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	switch interaction.ModalSubmitData().CustomID {
-	case "edit-modal-input":
+	case EditModal:
 		// TODO use modal input
+		//interaction.ModalSubmitData().Components[0]
 	default:
-		log.Error().Msgf("could not map modal submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
+		log.Error().Msgf("Could not map modal-submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
 	}
 }
 
@@ -226,7 +231,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session,
 		editedMessage := discordgo.NewMessageEdit(bot.channelID, lastMessage.ID)
 		editedMessage.SetContent(model.ToShoppingListTable(bot.shoppingList))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
-			log.Error().Err(err).Msgf("could not edit message %s", lastMessage.ID)
+			log.Error().Err(err).Msgf("Could not edit message %s", lastMessage.ID)
 		}
 		return
 	}
@@ -235,7 +240,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session,
 		Content:    model.ToShoppingListTable(bot.shoppingList),
 		Components: createMessageButtons(),
 	}); err != nil {
-		log.Error().Err(err).Msg("could not send complex message")
+		log.Error().Err(err).Msg("Could not send complex message")
 	}
 }
 
@@ -248,14 +253,14 @@ func createMessageButtons() []discordgo.MessageComponent {
 						Name: "📝",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: "edit-button",
+					CustomID: EditButton,
 				},
 				discordgo.Button{
 					Emoji: discordgo.ComponentEmoji{
 						Name: "🏁",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: "done-button",
+					CustomID: DoneButton,
 				},
 			},
 		},
