@@ -128,6 +128,30 @@ func TestUpdateFromShoppingList(t *testing.T) {
 				},
 			},
 		},
+		//"remove item": {
+		//	shoppingList: []ShoppingListItem{
+		//		{
+		//			ID:     1,
+		//			Item:   "eggos",
+		//			Amount: 4,
+		//			Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+		//		}, {
+		//			ID:     2,
+		//			Item:   "milk",
+		//			Amount: 1,
+		//			Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+		//		},
+		//	},
+		//	update: "[1] eggs\t\t,2\n",
+		//	expected: []ShoppingListItem{
+		//		{
+		//			ID:     1,
+		//			Item:   "eggs",
+		//			Amount: 2,
+		//			Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+		//		},
+		//	},
+		//},
 	}
 
 	for name, test := range tests {
