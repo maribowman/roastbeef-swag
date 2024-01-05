@@ -26,6 +26,9 @@ jobs:
 
       - uses: actions/checkout@v3
 
+      - name: Inject bot token
+        run: sed -i 's/BOT_TOKEN/${{ secret.BOT_TOKEN }}/g' configs/local.yaml
+
       - name: Generate image tag
         run: echo "TAG=$(git rev-parse --abbrev-ref HEAD)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 

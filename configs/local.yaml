@@ -7,8 +7,7 @@ logging:
   outputFormat: TEXT # TEXT | JSON (default)
 
 discord:
-#  token: ${BOT_TOKEN}
-  token: TVRFMU56TTFOemcwTVRnek16Z3dPREF5TXcuR19idmRKLmgtNGVHdS1NbTk2em9meXNKLXh3SUJ3aURIZ25fWGxpU0xvSmlZ
+  token: BOT_TOKEN
   botID: 1157357841833808023
   channels:
     groceries: 1084632136180572230
