@@ -1,7 +1,7 @@
 package service
 
 import (
-	"encoding/base64"
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
@@ -14,11 +14,7 @@ type DiscordService struct {
 }
 
 func NewDiscordService() model.DiscordService {
-	tokenBytes, err := base64.StdEncoding.DecodeString(config.Config.Discord.Token)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Could not decode token")
-	}
-	session, err := discordgo.New("Bot " + string(tokenBytes))
+	session, err := discordgo.New(fmt.Sprintf("Bot %s", config.Config.Discord.Token))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating discord session")
 	}
