@@ -6,7 +6,6 @@ on:
     branches: [ main ]
 
 env:
-  DOCKERHUB_NAME: marschine
   GH_IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
@@ -18,6 +17,13 @@ jobs:
       id-token: write
 
     steps:
+      - name: Log into registry ghcr.io
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/checkout@v3
 
       - name: Generate image tag
@@ -25,13 +31,6 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t ${{ env.GH_IMAGE_NAME }}:latest -t ${{ env.GH_IMAGE_NAME }}:${{ env.TAG }} .
-
-      - name: Log into registry ghcr.io
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push image to ghcr.io
         run: |
