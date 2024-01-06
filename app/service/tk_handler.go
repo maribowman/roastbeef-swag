@@ -65,17 +65,17 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		}
 
 		if removeRegex.MatchString(line) {
-			//handler.remove(line)
+			handler.inventory = Remove(handler.inventory, line)
 		} else {
-			//handler.add(line)
+			handler.inventory = Add(handler.inventory, line)
 		}
 	}
 
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
-		log.Error().Err(err).Msg("could not bulk delete channel messages")
+		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	//handler.publish(session, lastBotMessage.ChannelID, lastBotMessage.ID)
+	PublishItems(handler.inventory, session, lastBotMessage.ChannelID, lastBotMessage.ID)
 }
 
 func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -87,7 +87,7 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: EditModal,
-				Title:    "Edit grocery list",
+				Title:    "Edit inventory list",
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{

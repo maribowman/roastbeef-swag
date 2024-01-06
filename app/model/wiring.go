@@ -3,9 +3,9 @@ package model
 import "github.com/bwmarrin/discordgo"
 
 type DiscordBot interface {
-	ReadyHandler(*discordgo.Session, *discordgo.Ready)
-	MessageDispatchHandler(*discordgo.Session, *discordgo.MessageCreate)
-	InteractionDispatchHandler(*discordgo.Session, *discordgo.InteractionCreate)
+	Ready(*discordgo.Session, *discordgo.Ready)
+	MessageDispatch(*discordgo.Session, *discordgo.MessageCreate)
+	InteractionDispatch(*discordgo.Session, *discordgo.InteractionCreate)
 	CloseSession()
 }
 

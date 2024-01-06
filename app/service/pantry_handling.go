@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	GroceriesChannelName = "groceries"
-	TkGoodsChannelName   = "tkGoods"
+	GroceriesChannel = "groceries"
+	TkGoodsChannel   = "tkGoods"
 
 	EditButton     = "edit-button"
 	DoneButton     = "done-button"
@@ -105,7 +105,7 @@ func Add(items []model.PantryItem, line string) []model.PantryItem {
 	})
 }
 
-func PublishList(items []model.PantryItem, session *discordgo.Session, channelID, messageID string) {
+func PublishItems(items []model.PantryItem, session *discordgo.Session, channelID, messageID string) {
 	if messageID != "" {
 		editedMessage := discordgo.NewMessageEdit(channelID, messageID)
 		editedMessage.SetContent(model.ToMarkdownTable(items, ""))

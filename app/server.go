@@ -15,7 +15,7 @@ func InitServer() (*http.Server, model.DiscordBot, error) {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Config.Server.Port),
 		Handler: injectRouter(),
-	}, service.NewDiscordService(), nil
+	}, service.NewDiscordBot(), nil
 }
 
 func injectRouter() *gin.Engine {

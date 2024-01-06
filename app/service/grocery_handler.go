@@ -24,6 +24,7 @@ func NewGroceryHandler(botID string, channelID string) model.BotHandler {
 
 func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
+	log.Debug().Msg("Initialized grocery handler")
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -72,10 +73,10 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 	}
 
 	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
-		log.Error().Err(err).Msg("could not bulk delete channel messages")
+		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishList(handler.shoppingList, session, lastBotMessage.ChannelID, lastBotMessage.ID)
+	PublishItems(handler.shoppingList, session, lastBotMessage.ChannelID, lastBotMessage.ID)
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
