@@ -7,14 +7,10 @@ import (
 	"strings"
 )
 
-const (
-	TkGoodsChannelName = "tkGoods"
-)
-
 type TkHandler struct {
 	botID         string
 	channelID     string
-	inventory     []model.GroceryItem
+	inventory     []model.PantryItem
 	lastInventory string
 }
 
@@ -106,12 +102,12 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 			},
 		}
 	case DoneButton:
-		handler.inventory = []model.GroceryItem{}
+		handler.inventory = []model.PantryItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Content:    model.ToMarkdownTable(handler.inventory, ""),
-				Components: createMessageButtons(),
+				Components: CreateMessageButtons(),
 			},
 		}
 	default:
@@ -134,7 +130,7 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Content:    model.ToMarkdownTable(handler.inventory, ""),
-				Components: createMessageButtons(),
+				Components: CreateMessageButtons(),
 			},
 		}
 	default:

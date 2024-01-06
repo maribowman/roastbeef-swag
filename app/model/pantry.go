@@ -12,14 +12,14 @@ import (
 
 var idPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 
-type GroceryItem struct {
+type PantryItem struct {
 	ID     int
 	Item   string
 	Amount int
 	Date   time.Time
 }
 
-func ToList(items []GroceryItem) string {
+func ToList(items []PantryItem) string {
 	var shoppingList string
 	for index, item := range items {
 		if index != 0 {
@@ -33,7 +33,7 @@ func ToList(items []GroceryItem) string {
 	return shoppingList
 }
 
-func UpdateFromList(shoppingList []GroceryItem, updatedList string) []GroceryItem {
+func UpdateFromList(items []PantryItem, updatedList string) []PantryItem {
 	for _, update := range strings.Split(updatedList, "\n") {
 		if strings.TrimSpace(update) == "" {
 			continue
@@ -47,25 +47,25 @@ func UpdateFromList(shoppingList []GroceryItem, updatedList string) []GroceryIte
 		if len(rawID) == 2 { // matches full string + capture group
 			id, _ = strconv.Atoi(rawID[1])
 		} else {
-			id = len(shoppingList) + 1
-			shoppingList = append(shoppingList, GroceryItem{
+			id = len(items) + 1
+			items = append(items, PantryItem{
 				ID:   id,
 				Date: time.Now().Truncate(time.Minute),
 			})
 		}
 
-		shoppingList[id-1].Item = item
-		shoppingList[id-1].Amount = 1
+		items[id-1].Item = item
+		items[id-1].Amount = 1
 		if len(updateSplit) == 2 {
 			if amount, err := strconv.Atoi(strings.TrimSpace(updateSplit[1])); err == nil {
-				shoppingList[id-1].Amount = amount
+				items[id-1].Amount = amount
 			}
 		}
 	}
-	return shoppingList
+	return items
 }
 
-func ToMarkdownTable(items []GroceryItem, dateFormat string) string {
+func ToMarkdownTable(items []PantryItem, dateFormat string) string {
 	if dateFormat == "" {
 		dateFormat = "02.01."
 	}
@@ -97,8 +97,8 @@ func ToMarkdownTable(items []GroceryItem, dateFormat string) string {
 	return writer.String()
 }
 
-func FromMarkdownTable(table string) []GroceryItem {
-	var result []GroceryItem
+func FromMarkdownTable(table string) []PantryItem {
+	var result []PantryItem
 	splitTable := strings.Split(table, "\n")
 
 	for index, item := range splitTable {
@@ -111,7 +111,7 @@ func FromMarkdownTable(table string) []GroceryItem {
 		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
 		date, _ := time.Parse("02.01.", strings.TrimSpace(splitItem[4]))
 
-		result = append(result, GroceryItem{
+		result = append(result, PantryItem{
 			ID:     id,
 			Item:   strings.TrimSpace(splitItem[2]),
 			Amount: amount,

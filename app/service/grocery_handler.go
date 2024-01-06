@@ -4,32 +4,13 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
-	"regexp"
-	"slices"
-	"strconv"
 	"strings"
-	"time"
-)
-
-const (
-	GroceriesChannelName = "groceries"
-
-	EditButton     = "edit-button"
-	DoneButton     = "done-button"
-	EditModal      = "edit-modal"
-	EditModalInput = "edit-modal-input"
-)
-
-var (
-	removeRegex      = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
-	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
-	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
 )
 
 type GroceryHandler struct {
 	botID            string
 	channelID        string
-	shoppingList     []model.GroceryItem
+	shoppingList     []model.PantryItem
 	lastShoppingList string
 }
 
@@ -84,9 +65,9 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		}
 
 		if removeRegex.MatchString(line) {
-			handler.remove(line)
+			handler.shoppingList = Remove(handler.shoppingList, line)
 		} else {
-			handler.add(line)
+			handler.shoppingList = Add(handler.shoppingList, line)
 		}
 	}
 
@@ -94,7 +75,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		log.Error().Err(err).Msg("could not bulk delete channel messages")
 	}
 
-	handler.publish(session, lastBotMessage.ChannelID, lastBotMessage.ID)
+	PublishList(handler.shoppingList, session, lastBotMessage.ChannelID, lastBotMessage.ID)
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -121,12 +102,12 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 			},
 		}
 	case DoneButton:
-		handler.shoppingList = []model.GroceryItem{}
+		handler.shoppingList = []model.PantryItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
-				Components: createMessageButtons(),
+				Components: CreateMessageButtons(),
 			},
 		}
 	default:
@@ -149,7 +130,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
 				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
-				Components: createMessageButtons(),
+				Components: CreateMessageButtons(),
 			},
 		}
 	default:
@@ -157,132 +138,4 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 	}
 
 	_ = session.InteractionRespond(interaction.Interaction, response)
-}
-
-func (handler *GroceryHandler) remove(line string) {
-	var tempShoppingList []model.GroceryItem
-	removeAllExcept := false
-
-	// CAPTURE GROUP 0: entire string
-	// CAPTURE GROUP 1: asterisk
-	// CAPTURE GROUP 2: range
-	captureGroups := removeRegex.FindStringSubmatch(line)
-
-	// remove all (except)
-	if captureGroups[1] == "*" {
-		removeAllExcept = true
-		if captureGroups[0] == captureGroups[1] {
-			handler.shoppingList = tempShoppingList
-			return
-		}
-	}
-
-	// add single removable IDs
-	var ids []int
-	if captureGroups[0] != captureGroups[2] {
-		for _, value := range strings.Split(captureGroups[0], " ") {
-			if id, err := strconv.Atoi(value); err == nil {
-				ids = append(ids, id)
-			}
-		}
-	}
-
-	// add range to removable IDs
-	if captureGroups[2] != "" {
-		range_ := strings.Split(captureGroups[2], "-")
-		rangeStart, _ := strconv.Atoi(range_[0])
-		rangeEnd, _ := strconv.Atoi(range_[1])
-
-		for i := rangeStart; i <= rangeEnd; i++ {
-			ids = append(ids, i)
-		}
-	}
-
-	for _, entry := range handler.shoppingList {
-		if slices.Contains(ids, entry.ID) {
-			if !removeAllExcept {
-				continue
-			}
-		} else if removeAllExcept {
-			continue
-		}
-		entry.ID = len(tempShoppingList) + 1 // comment-out to run remove unit tests
-		tempShoppingList = append(tempShoppingList, entry)
-	}
-	handler.shoppingList = tempShoppingList
-}
-
-func (handler *GroceryHandler) add(line string) {
-	leading := leadingQuantity.FindStringSubmatch(line)
-	trailing := trailingQuantity.FindStringSubmatch(line)
-
-	var quantity string
-	if leading != nil {
-		quantity = leading[1]
-		line = strings.TrimPrefix(line, quantity)
-	} else if trailing != nil {
-		quantity = trailing[1]
-		line = strings.TrimSuffix(line, quantity)
-	}
-
-	amount, err := strconv.Atoi(quantity)
-	if err != nil {
-		amount = 1
-	}
-
-	handler.shoppingList = append(handler.shoppingList, model.GroceryItem{
-		ID:     len(handler.shoppingList) + 1,
-		Item:   strings.TrimSpace(line),
-		Amount: amount,
-		Date:   time.Now().Truncate(time.Minute),
-	})
-}
-
-func (handler *GroceryHandler) publish(session *discordgo.Session, channelID, messageID string) {
-	var items []model.GroceryItem
-	//switch channelID {
-	//case handler.groceryChannelID:
-	//	items = handler.shoppingList
-	//case handler.tkChannelID:
-	//	items = handler.tkInventory
-	//}
-
-	if messageID != "" {
-		editedMessage := discordgo.NewMessageEdit(channelID, messageID)
-		editedMessage.SetContent(model.ToMarkdownTable(items, ""))
-		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
-			log.Error().Err(err).Msgf("Could not edit message %s", messageID)
-		}
-		return
-	}
-
-	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content:    model.ToMarkdownTable(items, ""),
-		Components: createMessageButtons(),
-	}); err != nil {
-		log.Error().Err(err).Msg("Could not send complex message")
-	}
-}
-
-func createMessageButtons() []discordgo.MessageComponent {
-	return []discordgo.MessageComponent{
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.Button{
-					Emoji: discordgo.ComponentEmoji{
-						Name: "📝",
-					},
-					Style:    discordgo.SecondaryButton,
-					CustomID: EditButton,
-				},
-				discordgo.Button{
-					Emoji: discordgo.ComponentEmoji{
-						Name: "🏁",
-					},
-					Style:    discordgo.SecondaryButton,
-					CustomID: DoneButton,
-				},
-			},
-		},
-	}
 }
