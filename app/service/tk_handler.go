@@ -24,13 +24,10 @@ func NewTkHandler(botID string, channelID string) model.BotHandler {
 
 func (handler *TkHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
+	log.Debug().Msg("Initialized grocery handler")
 }
 
 func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.Author.ID == handler.botID {
-		return
-	}
-
 	channelMessages, err := session.ChannelMessages(message.ChannelID, 100, "", "", "")
 	if err != nil {
 		return

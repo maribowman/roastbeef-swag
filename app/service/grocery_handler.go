@@ -28,10 +28,6 @@ func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *dis
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.Author.ID == handler.botID {
-		return
-	}
-
 	channelMessages, err := session.ChannelMessages(handler.channelID, 100, "", "", "")
 	if err != nil {
 		return

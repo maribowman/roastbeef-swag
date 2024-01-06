@@ -46,6 +46,10 @@ func (bot *DiscordBot) Ready(session *discordgo.Session, ready *discordgo.Ready)
 }
 
 func (bot *DiscordBot) MessageDispatch(session *discordgo.Session, message *discordgo.MessageCreate) {
+	if message.Author.ID == config.Config.Discord.BotID {
+		return
+	}
+
 	if handler, ok := bot.handlers[message.ChannelID]; ok {
 		handler.MessageEvent(session, message)
 	} else {
