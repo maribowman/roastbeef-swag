@@ -87,11 +87,11 @@ func TestAdd(t *testing.T) {
 	// given
 	tests := map[string]struct {
 		content  string
-		expected []model.ShoppingListItem
+		expected []model.GroceryItem
 	}{
 		"simple add": {
 			content: "bacon",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "bacon",
 				Amount: 1,
@@ -100,7 +100,7 @@ func TestAdd(t *testing.T) {
 		},
 		"simple multi word add": {
 			content: "butter scotch",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "butter scotch",
 				Amount: 1,
@@ -109,7 +109,7 @@ func TestAdd(t *testing.T) {
 		},
 		"simple hyphened add": {
 			content: "dry-gin",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "dry-gin",
 				Amount: 1,
@@ -118,7 +118,7 @@ func TestAdd(t *testing.T) {
 		},
 		"add with trailing quantity": {
 			content: "bacon 5",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "bacon",
 				Amount: 5,
@@ -127,7 +127,7 @@ func TestAdd(t *testing.T) {
 		},
 		"add with leading quantity": {
 			content: "13 bacon",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "bacon",
 				Amount: 13,
@@ -136,7 +136,7 @@ func TestAdd(t *testing.T) {
 		},
 		"add with numbered name": {
 			content: "2 monkey47",
-			expected: []model.ShoppingListItem{{
+			expected: []model.GroceryItem{{
 				ID:     1,
 				Item:   "monkey47",
 				Amount: 2,

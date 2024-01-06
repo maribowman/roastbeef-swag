@@ -13,6 +13,7 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
+	TkGoodsChannelName   = "tkGoods"
 
 	EditButton     = "edit-button"
 	DoneButton     = "done-button"
@@ -29,7 +30,7 @@ var (
 type GroceryBot struct {
 	botID                     string
 	channelID                 string
-	shoppingList              []model.ShoppingListItem
+	shoppingList              []model.GroceryItem
 	previousShoppingListTable string
 }
 
@@ -121,7 +122,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 			},
 		}
 	case DoneButton:
-		bot.shoppingList = []model.ShoppingListItem{}
+		bot.shoppingList = []model.GroceryItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -160,7 +161,7 @@ func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, i
 }
 
 func (bot *GroceryBot) remove(line string) {
-	var tempShoppingList []model.ShoppingListItem
+	var tempShoppingList []model.GroceryItem
 	removeAllExcept := false
 
 	// CAPTURE GROUP 0: entire string
@@ -230,7 +231,7 @@ func (bot *GroceryBot) add(line string) {
 		amount = 1
 	}
 
-	bot.shoppingList = append(bot.shoppingList, model.ShoppingListItem{
+	bot.shoppingList = append(bot.shoppingList, model.GroceryItem{
 		ID:     len(bot.shoppingList) + 1,
 		Item:   strings.TrimSpace(line),
 		Amount: amount,

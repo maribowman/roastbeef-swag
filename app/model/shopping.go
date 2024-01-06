@@ -12,14 +12,14 @@ import (
 
 var idPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 
-type ShoppingListItem struct {
+type GroceryItem struct {
 	ID     int
 	Item   string
 	Amount int
 	Date   time.Time
 }
 
-func ToShoppingList(items []ShoppingListItem) string {
+func ToShoppingList(items []GroceryItem) string {
 	var shoppingList string
 	for index, item := range items {
 		if index != 0 {
@@ -33,7 +33,7 @@ func ToShoppingList(items []ShoppingListItem) string {
 	return shoppingList
 }
 
-func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string) []ShoppingListItem {
+func UpdateFromShoppingList(shoppingList []GroceryItem, updatedList string) []GroceryItem {
 	for _, update := range strings.Split(updatedList, "\n") {
 		if strings.TrimSpace(update) == "" {
 			continue
@@ -48,7 +48,7 @@ func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string)
 			id, _ = strconv.Atoi(rawID[1])
 		} else {
 			id = len(shoppingList) + 1
-			shoppingList = append(shoppingList, ShoppingListItem{
+			shoppingList = append(shoppingList, GroceryItem{
 				ID:   id,
 				Date: time.Now().Truncate(time.Minute),
 			})
@@ -65,7 +65,7 @@ func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string)
 	return shoppingList
 }
 
-func ToShoppingListTable(items []ShoppingListItem, dateFormat string) string {
+func ToShoppingListTable(items []GroceryItem, dateFormat string) string {
 	if dateFormat == "" {
 		dateFormat = "02.01."
 	}
@@ -97,8 +97,8 @@ func ToShoppingListTable(items []ShoppingListItem, dateFormat string) string {
 	return writer.String()
 }
 
-func FromShoppingListTable(table string) []ShoppingListItem {
-	var result []ShoppingListItem
+func FromShoppingListTable(table string) []GroceryItem {
+	var result []GroceryItem
 	splitTable := strings.Split(table, "\n")
 
 	for index, item := range splitTable {
@@ -111,7 +111,7 @@ func FromShoppingListTable(table string) []ShoppingListItem {
 		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
 		date, _ := time.Parse("02.01.", strings.TrimSpace(splitItem[4]))
 
-		result = append(result, ShoppingListItem{
+		result = append(result, GroceryItem{
 			ID:     id,
 			Item:   strings.TrimSpace(splitItem[2]),
 			Amount: amount,

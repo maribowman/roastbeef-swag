@@ -9,12 +9,12 @@ import (
 func TestUpdateFromShoppingList(t *testing.T) {
 	// given
 	tests := map[string]struct {
-		shoppingList []ShoppingListItem
+		shoppingList []GroceryItem
 		update       string
-		expected     []ShoppingListItem
+		expected     []GroceryItem
 	}{
 		"simple quantity update": {
-			shoppingList: []ShoppingListItem{
+			shoppingList: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "bacon",
@@ -23,7 +23,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 				},
 			},
 			update: "[1] bacon\t\t, 3",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "bacon",
@@ -33,7 +33,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 			},
 		},
 		"simple item update": {
-			shoppingList: []ShoppingListItem{
+			shoppingList: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "bac",
@@ -41,7 +41,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}},
 			update: "[1] bacon\t\t, 3",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "bacon",
@@ -51,7 +51,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 			},
 		},
 		"complex update": {
-			shoppingList: []ShoppingListItem{
+			shoppingList: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "coffee",
@@ -70,7 +70,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 				},
 			},
 			update: "[1] bacon\n[2] eggs\t\t,2\n\n[3] milk",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "bacon",
@@ -90,7 +90,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 			},
 		},
 		"complex update + added items": {
-			shoppingList: []ShoppingListItem{
+			shoppingList: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "eggos",
@@ -104,7 +104,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 				},
 			},
 			update: "bacon\n[1] eggs\t\t,2\n[2] milk\nbeer,6",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "eggs",
@@ -129,7 +129,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 			},
 		},
 		//"remove item": {
-		//	shoppingList: []ShoppingListItem{
+		//	shoppingList: []GroceryItem{
 		//		{
 		//			ID:     1,
 		//			Item:   "eggos",
@@ -143,7 +143,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 		//		},
 		//	},
 		//	update: "[1] eggs\t\t,2\n",
-		//	expected: []ShoppingListItem{
+		//	expected: []GroceryItem{
 		//		{
 		//			ID:     1,
 		//			Item:   "eggs",
@@ -169,7 +169,7 @@ func TestFromShoppingListTable(t *testing.T) {
 	// given
 	tests := map[string]struct {
 		table    string
-		expected []ShoppingListItem
+		expected []GroceryItem
 	}{
 		"simple conversion": {
 			table: "```md\n" +
@@ -177,7 +177,7 @@ func TestFromShoppingListTable(t *testing.T) {
 				"|---|------|-----|--------|\n" +
 				"| 1 | test | 3   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "test",
@@ -195,7 +195,7 @@ func TestFromShoppingListTable(t *testing.T) {
 				"| 3 | bacon  | 3   | 26.12. |\n" +
 				"| 4 | milk   | 1   | 27.12. |\n" +
 				"```",
-			expected: []ShoppingListItem{
+			expected: []GroceryItem{
 				{
 					ID:     1,
 					Item:   "eggs",
