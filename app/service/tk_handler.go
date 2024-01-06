@@ -90,7 +90,7 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, ""),
+				Content:    model.ToMarkdownTable(handler.inventory, "02.01.06"),
 				Components: CreateMessageButtons(),
 			},
 		}
