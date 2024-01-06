@@ -8,51 +8,27 @@ import (
 )
 
 type TkHandler struct {
-	botID         string
 	channelID     string
 	inventory     []model.PantryItem
 	lastInventory string
 }
 
-func NewTkHandler(botID string, channelID string) model.BotHandler {
+func NewTkHandler(channelID string) model.BotHandler {
 	log.Debug().Msg("Registering tk handler")
 	return &TkHandler{
-		botID:     botID,
 		channelID: channelID,
 	}
 }
 
 func (handler *TkHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	log.Debug().Msg("Initialized grocery handler")
+	log.Debug().Msg("Initialized tk handler")
 }
 
 func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	channelMessages, err := session.ChannelMessages(message.ChannelID, 100, "", "", "")
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message)
 	if err != nil {
 		return
-	}
-
-	var lastBotMessage *discordgo.Message
-	var content string
-	var removableMessageIDs []string
-
-	for _, msg := range channelMessages {
-		if msg.Author.ID == handler.botID {
-			if lastBotMessage == nil {
-				lastBotMessage = msg
-				handler.inventory = model.FromMarkdownTable(msg.Content)
-				continue
-			} else if lastBotMessage.Timestamp.After(msg.Timestamp) {
-				removableMessageIDs = append(removableMessageIDs, lastBotMessage.ID)
-				lastBotMessage = msg
-				handler.inventory = model.FromMarkdownTable(msg.Content)
-				continue
-			}
-		} else {
-			content += "\n" + msg.Content
-		}
-		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
 
 	for _, line := range strings.Split(content, "\n") {
@@ -62,9 +38,9 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		}
 
 		if removeRegex.MatchString(line) {
-			handler.inventory = Remove(handler.inventory, line)
+			handler.inventory = Remove(items, line)
 		} else {
-			handler.inventory = Add(handler.inventory, line)
+			handler.inventory = Add(items, line)
 		}
 	}
 
@@ -72,7 +48,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.inventory, session, lastBotMessage.ChannelID, lastBotMessage.ID)
+	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID)
 }
 
 func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -103,7 +79,7 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, ""),
+				Content:    model.ToMarkdownTable(handler.inventory, "02.01.06"),
 				Components: CreateMessageButtons(),
 			},
 		}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
 	"regexp"
@@ -26,6 +27,45 @@ var (
 	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
 	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
 )
+
+func PreProcessMessageEvent(
+	session *discordgo.Session,
+	message *discordgo.MessageCreate,
+) (
+	items []model.PantryItem,
+	lastBotMessageID string,
+	content string,
+	removableMessageIDs []string,
+	err error,
+) {
+	channelMessages, err_ := session.ChannelMessages(message.ChannelID, 100, "", "", "")
+	if err_ != nil {
+		err = err_
+		return
+	}
+
+	var lastBotMessage *discordgo.Message
+	for _, msg := range channelMessages {
+		if msg.Author.ID == config.Config.Discord.BotID {
+			if lastBotMessage == nil {
+				lastBotMessage = msg
+				lastBotMessageID = msg.ID
+				items = model.FromMarkdownTable(msg.Content)
+				continue
+			} else if lastBotMessage.Timestamp.After(msg.Timestamp) {
+				removableMessageIDs = append(removableMessageIDs, lastBotMessageID) // remove previous bot msg
+				lastBotMessage = msg
+				lastBotMessageID = msg.ID
+				items = model.FromMarkdownTable(msg.Content)
+				continue
+			}
+		} else {
+			content += "\n" + msg.Content
+		}
+		removableMessageIDs = append(removableMessageIDs, msg.ID)
+	}
+	return
+}
 
 func Remove(items []model.PantryItem, line string) []model.PantryItem {
 	result := make([]model.PantryItem, 0)

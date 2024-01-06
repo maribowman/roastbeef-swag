@@ -22,8 +22,8 @@ func NewDiscordBot() model.DiscordBot {
 	bot := DiscordBot{
 		session: session,
 		handlers: map[string]model.BotHandler{
-			config.Config.Discord.Channels[GroceriesChannel]: NewGroceryHandler(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannel]),
-			config.Config.Discord.Channels[TkGoodsChannel]:   NewTkHandler(config.Config.Discord.BotID, config.Config.Discord.Channels[TkGoodsChannel]),
+			config.Config.Discord.Channels[GroceriesChannel]: NewGroceryHandler(config.Config.Discord.Channels[GroceriesChannel]),
+			config.Config.Discord.Channels[TkGoodsChannel]:   NewTkHandler(config.Config.Discord.Channels[TkGoodsChannel]),
 		},
 	}
 

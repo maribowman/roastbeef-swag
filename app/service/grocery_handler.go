@@ -8,16 +8,14 @@ import (
 )
 
 type GroceryHandler struct {
-	botID            string
 	channelID        string
 	shoppingList     []model.PantryItem
 	lastShoppingList string
 }
 
-func NewGroceryHandler(botID string, channelID string) model.BotHandler {
+func NewGroceryHandler(channelID string) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
-		botID:     botID,
 		channelID: channelID,
 	}
 }
@@ -28,31 +26,9 @@ func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *dis
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	channelMessages, err := session.ChannelMessages(handler.channelID, 100, "", "", "")
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message)
 	if err != nil {
 		return
-	}
-
-	var lastBotMessage *discordgo.Message
-	var content string
-	var removableMessageIDs []string
-
-	for _, msg := range channelMessages {
-		if msg.Author.ID == handler.botID {
-			if lastBotMessage == nil {
-				lastBotMessage = msg
-				handler.shoppingList = model.FromMarkdownTable(msg.Content)
-				continue
-			} else if lastBotMessage.Timestamp.After(msg.Timestamp) {
-				removableMessageIDs = append(removableMessageIDs, lastBotMessage.ID)
-				lastBotMessage = msg
-				handler.shoppingList = model.FromMarkdownTable(msg.Content)
-				continue
-			}
-		} else {
-			content += "\n" + msg.Content
-		}
-		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
 
 	for _, line := range strings.Split(content, "\n") {
@@ -62,9 +38,9 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		}
 
 		if removeRegex.MatchString(line) {
-			handler.shoppingList = Remove(handler.shoppingList, line)
+			handler.shoppingList = Remove(items, line)
 		} else {
-			handler.shoppingList = Add(handler.shoppingList, line)
+			handler.shoppingList = Add(items, line)
 		}
 	}
 
@@ -72,7 +48,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.shoppingList, session, lastBotMessage.ChannelID, lastBotMessage.ID)
+	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID)
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
