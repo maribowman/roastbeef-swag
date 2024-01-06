@@ -63,17 +63,17 @@ func TestRemove(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// and
-			bot := GroceryBot{}
+			handler := GroceryHandler{}
 			for i := 0; i < 9; i++ {
-				bot.add(fmt.Sprintf("item %d", i))
+				handler.add(fmt.Sprintf("item %d", i))
 			}
 
 			// when
-			bot.remove(test.content)
+			handler.remove(test.content)
 
 			// and
 			actual := []int{}
-			for _, item := range bot.shoppingList {
+			for _, item := range handler.shoppingList {
 				actual = append(actual, item.ID)
 			}
 
@@ -148,13 +148,13 @@ func TestAdd(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// and
-			bot := GroceryBot{}
+			handler := GroceryHandler{}
 
 			// when
-			bot.add(test.content)
+			handler.add(test.content)
 
 			// then
-			assert.EqualValues(t, test.expected, bot.shoppingList)
+			assert.EqualValues(t, test.expected, handler.shoppingList)
 		})
 	}
 }

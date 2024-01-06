@@ -8,21 +8,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type DiscordService struct {
-	session    *discordgo.Session
-	groceryBot model.DiscordBot
+type DiscordBotService struct {
+	session        *discordgo.Session
+	groceryHandler model.BotHandler
+	tkHandler      model.BotHandler
 }
 
-func NewDiscordService() model.DiscordService {
+func NewDiscordService() model.DiscordBot {
 	session, err := discordgo.New(fmt.Sprintf("Bot %s", config.Config.Discord.Token))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating discord session")
 	}
 
-	service := DiscordService{
+	service := DiscordBotService{
 		session: session,
 		// bots: []model.DiscordBot{}, // TODO accumulate bots as kv-pairs (name, discord-bot)
-		groceryBot: NewGroceryBot(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannelName]),
+		groceryHandler: NewGroceryHandler(config.Config.Discord.BotID, config.Config.Discord.Channels[GroceriesChannelName]),
+		tkHandler:      NewTkHandler(config.Config.Discord.BotID, config.Config.Discord.Channels[TkGoodsChannelName]),
 	}
 
 	service.session.AddHandler(service.ReadyHandler)
@@ -36,25 +38,25 @@ func NewDiscordService() model.DiscordService {
 	return &service
 }
 
-func (service *DiscordService) ReadyHandler(session *discordgo.Session, ready *discordgo.Ready) {
-	service.groceryBot.ReadyEvent(session, ready)
+func (service *DiscordBotService) ReadyHandler(session *discordgo.Session, ready *discordgo.Ready) {
+	service.groceryHandler.ReadyEvent(session, ready)
 	log.Info().Msg("Bot is up!")
 }
 
-func (service *DiscordService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
+func (service *DiscordBotService) MessageDispatchHandler(session *discordgo.Session, message *discordgo.MessageCreate) {
 	switch message.ChannelID {
 	case config.Config.Discord.Channels[GroceriesChannelName]:
-		service.groceryBot.MessageEvent(session, message)
+		service.groceryHandler.MessageEvent(session, message)
 	default:
 		log.Debug().Msg("Could not dispatch message event")
 	}
 }
 
-func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	var bot model.DiscordBot
+func (service *DiscordBotService) InteractionDispatchHandler(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	var handler model.BotHandler
 	switch interaction.ChannelID {
 	case config.Config.Discord.Channels[GroceriesChannelName]:
-		bot = service.groceryBot
+		handler = service.groceryHandler
 	default:
 		log.Debug().Msgf("Could not match handler for interaction event on channel `%s`", interaction.ChannelID)
 		return
@@ -64,15 +66,15 @@ func (service *DiscordService) InteractionDispatchHandler(session *discordgo.Ses
 	case discordgo.InteractionApplicationCommand:
 		// slash commands
 	case discordgo.InteractionMessageComponent:
-		bot.MessageComponentInteractionEvent(session, interaction)
+		handler.MessageComponentInteractionEvent(session, interaction)
 	case discordgo.InteractionModalSubmit:
-		bot.ModalSubmitInteractionEvent(session, interaction)
+		handler.ModalSubmitInteractionEvent(session, interaction)
 	default:
 		log.Debug().Msgf("Could not dispatch interaction event with type `%s`", interaction.Type)
 	}
 }
 
-func (service *DiscordService) CloseSession() {
+func (service *DiscordBotService) CloseSession() {
 	if err := service.session.Close(); err != nil {
 		log.Error().Err(err).Msg("Could not close discord session")
 	}

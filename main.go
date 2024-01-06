@@ -37,7 +37,7 @@ func initLogger() {
 }
 
 func main() {
-	server, service, err := app.InitServer()
+	server, bot, err := app.InitServer()
 	log.Info().Msgf("Running server on port %d", config.Config.Server.Port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to init server")
@@ -51,7 +51,7 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	service.CloseSession()
+	bot.CloseSession()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {

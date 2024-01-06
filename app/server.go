@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func InitServer() (*http.Server, model.DiscordService, error) {
+func InitServer() (*http.Server, model.DiscordBot, error) {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Config.Server.Port),
 		Handler: injectRouter(),

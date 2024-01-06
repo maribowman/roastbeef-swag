@@ -13,7 +13,6 @@ import (
 
 const (
 	GroceriesChannelName = "groceries"
-	TkGoodsChannelName   = "tkGoods"
 
 	EditButton     = "edit-button"
 	DoneButton     = "done-button"
@@ -27,49 +26,49 @@ var (
 	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
 )
 
-type GroceryBot struct {
-	botID                     string
-	channelID                 string
-	shoppingList              []model.GroceryItem
-	previousShoppingListTable string
+type GroceryHandler struct {
+	botID            string
+	channelID        string
+	shoppingList     []model.GroceryItem
+	lastShoppingList string
 }
 
-func NewGroceryBot(botID string, channelID string) model.DiscordBot {
-	log.Debug().Msg("Registering grocery client handler")
-	return &GroceryBot{
+func NewGroceryHandler(botID string, channelID string) model.BotHandler {
+	log.Debug().Msg("Registering grocery handler")
+	return &GroceryHandler{
 		botID:     botID,
 		channelID: channelID,
 	}
 }
 
-func (bot *GroceryBot) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
-	bot.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
+func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
+	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 }
 
-func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.Author.ID == bot.botID {
+func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
+	if message.Author.ID == handler.botID {
 		return
 	}
 
-	channelMessages, err := session.ChannelMessages(bot.channelID, 100, "", "", "")
+	channelMessages, err := session.ChannelMessages(handler.channelID, 100, "", "", "")
 	if err != nil {
 		return
 	}
 
-	var lastMessage *discordgo.Message
+	var lastBotMessage *discordgo.Message
 	var content string
 	var removableMessageIDs []string
 
 	for _, msg := range channelMessages {
-		if msg.Author.ID == bot.botID {
-			if lastMessage == nil {
-				lastMessage = msg
-				bot.shoppingList = model.FromMarkdownTable(msg.Content)
+		if msg.Author.ID == handler.botID {
+			if lastBotMessage == nil {
+				lastBotMessage = msg
+				handler.shoppingList = model.FromMarkdownTable(msg.Content)
 				continue
-			} else if lastMessage.Timestamp.After(msg.Timestamp) {
-				removableMessageIDs = append(removableMessageIDs, lastMessage.ID)
-				lastMessage = msg
-				bot.shoppingList = model.FromMarkdownTable(msg.Content)
+			} else if lastBotMessage.Timestamp.After(msg.Timestamp) {
+				removableMessageIDs = append(removableMessageIDs, lastBotMessage.ID)
+				lastBotMessage = msg
+				handler.shoppingList = model.FromMarkdownTable(msg.Content)
 				continue
 			}
 		} else {
@@ -85,20 +84,20 @@ func (bot *GroceryBot) MessageEvent(session *discordgo.Session, message *discord
 		}
 
 		if removeRegex.MatchString(line) {
-			bot.remove(line)
+			handler.remove(line)
 		} else {
-			bot.add(line)
+			handler.add(line)
 		}
 	}
 
-	if err := session.ChannelMessagesBulkDelete(bot.channelID, removableMessageIDs); err != nil {
+	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("could not bulk delete channel messages")
 	}
 
-	bot.publish(session, lastMessage)
+	handler.publish(session, lastBotMessage.ChannelID, lastBotMessage.ID)
 }
 
-func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
@@ -114,7 +113,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 							discordgo.TextInput{
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
-								Value:    model.ToList(bot.shoppingList),
+								Value:    model.ToList(handler.shoppingList),
 							},
 						},
 					},
@@ -122,11 +121,11 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 			},
 		}
 	case DoneButton:
-		bot.shoppingList = []model.GroceryItem{}
+		handler.shoppingList = []model.GroceryItem{}
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(bot.shoppingList, ""),
+				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
 				Components: createMessageButtons(),
 			},
 		}
@@ -137,19 +136,19 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
-func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		bot.shoppingList = model.UpdateFromList(
-			bot.shoppingList,
+		handler.shoppingList = model.UpdateFromList(
+			handler.shoppingList,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(bot.shoppingList, ""),
+				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
 				Components: createMessageButtons(),
 			},
 		}
@@ -160,7 +159,7 @@ func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, i
 	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
-func (bot *GroceryBot) remove(line string) {
+func (handler *GroceryHandler) remove(line string) {
 	var tempShoppingList []model.GroceryItem
 	removeAllExcept := false
 
@@ -173,7 +172,7 @@ func (bot *GroceryBot) remove(line string) {
 	if captureGroups[1] == "*" {
 		removeAllExcept = true
 		if captureGroups[0] == captureGroups[1] {
-			bot.shoppingList = tempShoppingList
+			handler.shoppingList = tempShoppingList
 			return
 		}
 	}
@@ -199,7 +198,7 @@ func (bot *GroceryBot) remove(line string) {
 		}
 	}
 
-	for _, entry := range bot.shoppingList {
+	for _, entry := range handler.shoppingList {
 		if slices.Contains(ids, entry.ID) {
 			if !removeAllExcept {
 				continue
@@ -210,10 +209,10 @@ func (bot *GroceryBot) remove(line string) {
 		entry.ID = len(tempShoppingList) + 1 // comment-out to run remove unit tests
 		tempShoppingList = append(tempShoppingList, entry)
 	}
-	bot.shoppingList = tempShoppingList
+	handler.shoppingList = tempShoppingList
 }
 
-func (bot *GroceryBot) add(line string) {
+func (handler *GroceryHandler) add(line string) {
 	leading := leadingQuantity.FindStringSubmatch(line)
 	trailing := trailingQuantity.FindStringSubmatch(line)
 
@@ -231,27 +230,34 @@ func (bot *GroceryBot) add(line string) {
 		amount = 1
 	}
 
-	bot.shoppingList = append(bot.shoppingList, model.GroceryItem{
-		ID:     len(bot.shoppingList) + 1,
+	handler.shoppingList = append(handler.shoppingList, model.GroceryItem{
+		ID:     len(handler.shoppingList) + 1,
 		Item:   strings.TrimSpace(line),
 		Amount: amount,
 		Date:   time.Now().Truncate(time.Minute),
 	})
 }
 
-func (bot *GroceryBot) publish(session *discordgo.Session,
-	lastMessage *discordgo.Message) {
-	if lastMessage != nil {
-		editedMessage := discordgo.NewMessageEdit(bot.channelID, lastMessage.ID)
-		editedMessage.SetContent(model.ToMarkdownTable(bot.shoppingList, ""))
+func (handler *GroceryHandler) publish(session *discordgo.Session, channelID, messageID string) {
+	var items []model.GroceryItem
+	//switch channelID {
+	//case handler.groceryChannelID:
+	//	items = handler.shoppingList
+	//case handler.tkChannelID:
+	//	items = handler.tkInventory
+	//}
+
+	if messageID != "" {
+		editedMessage := discordgo.NewMessageEdit(channelID, messageID)
+		editedMessage.SetContent(model.ToMarkdownTable(items, ""))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
-			log.Error().Err(err).Msgf("Could not edit message %s", lastMessage.ID)
+			log.Error().Err(err).Msgf("Could not edit message %s", messageID)
 		}
 		return
 	}
 
-	if _, err := session.ChannelMessageSendComplex(bot.channelID, &discordgo.MessageSend{
-		Content:    model.ToMarkdownTable(bot.shoppingList, ""),
+	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+		Content:    model.ToMarkdownTable(items, ""),
 		Components: createMessageButtons(),
 	}); err != nil {
 		log.Error().Err(err).Msg("Could not send complex message")
