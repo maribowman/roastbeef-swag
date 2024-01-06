@@ -65,14 +65,18 @@ func UpdateFromShoppingList(shoppingList []ShoppingListItem, updatedList string)
 	return shoppingList
 }
 
-func ToShoppingListTable(items []ShoppingListItem) string {
+func ToShoppingListTable(items []ShoppingListItem, dateFormat string) string {
+	if dateFormat == "" {
+		dateFormat = "02.01."
+	}
+
 	var data [][]string
 	for _, item := range items {
 		data = append(data, []string{
 			strconv.Itoa(item.ID),
 			item.Item,
 			strconv.Itoa(item.Amount),
-			item.Date.Format("02.01.")},
+			item.Date.Format(dateFormat)},
 		)
 	}
 

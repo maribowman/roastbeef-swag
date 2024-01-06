@@ -125,7 +125,7 @@ func (bot *GroceryBot) MessageComponentInteractionEvent(session *discordgo.Sessi
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToShoppingListTable(bot.shoppingList),
+				Content:    model.ToShoppingListTable(bot.shoppingList, ""),
 				Components: createMessageButtons(),
 			},
 		}
@@ -148,7 +148,7 @@ func (bot *GroceryBot) ModalSubmitInteractionEvent(session *discordgo.Session, i
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToShoppingListTable(bot.shoppingList),
+				Content:    model.ToShoppingListTable(bot.shoppingList, ""),
 				Components: createMessageButtons(),
 			},
 		}
@@ -242,7 +242,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session,
 	lastMessage *discordgo.Message) {
 	if lastMessage != nil {
 		editedMessage := discordgo.NewMessageEdit(bot.channelID, lastMessage.ID)
-		editedMessage.SetContent(model.ToShoppingListTable(bot.shoppingList))
+		editedMessage.SetContent(model.ToShoppingListTable(bot.shoppingList, ""))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 			log.Error().Err(err).Msgf("Could not edit message %s", lastMessage.ID)
 		}
@@ -250,7 +250,7 @@ func (bot *GroceryBot) publish(session *discordgo.Session,
 	}
 
 	if _, err := session.ChannelMessageSendComplex(bot.channelID, &discordgo.MessageSend{
-		Content:    model.ToShoppingListTable(bot.shoppingList),
+		Content:    model.ToShoppingListTable(bot.shoppingList, ""),
 		Components: createMessageButtons(),
 	}); err != nil {
 		log.Error().Err(err).Msg("Could not send complex message")
