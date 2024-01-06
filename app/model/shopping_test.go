@@ -157,7 +157,7 @@ func TestUpdateFromShoppingList(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := UpdateFromShoppingList(test.shoppingList, test.update)
+			actual := UpdateFromList(test.shoppingList, test.update)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)
@@ -224,7 +224,7 @@ func TestFromShoppingListTable(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := FromShoppingListTable(test.table)
+			actual := FromMarkdownTable(test.table)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)

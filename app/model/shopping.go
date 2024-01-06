@@ -19,7 +19,7 @@ type GroceryItem struct {
 	Date   time.Time
 }
 
-func ToShoppingList(items []GroceryItem) string {
+func ToList(items []GroceryItem) string {
 	var shoppingList string
 	for index, item := range items {
 		if index != 0 {
@@ -33,7 +33,7 @@ func ToShoppingList(items []GroceryItem) string {
 	return shoppingList
 }
 
-func UpdateFromShoppingList(shoppingList []GroceryItem, updatedList string) []GroceryItem {
+func UpdateFromList(shoppingList []GroceryItem, updatedList string) []GroceryItem {
 	for _, update := range strings.Split(updatedList, "\n") {
 		if strings.TrimSpace(update) == "" {
 			continue
@@ -65,7 +65,7 @@ func UpdateFromShoppingList(shoppingList []GroceryItem, updatedList string) []Gr
 	return shoppingList
 }
 
-func ToShoppingListTable(items []GroceryItem, dateFormat string) string {
+func ToMarkdownTable(items []GroceryItem, dateFormat string) string {
 	if dateFormat == "" {
 		dateFormat = "02.01."
 	}
@@ -97,7 +97,7 @@ func ToShoppingListTable(items []GroceryItem, dateFormat string) string {
 	return writer.String()
 }
 
-func FromShoppingListTable(table string) []GroceryItem {
+func FromMarkdownTable(table string) []GroceryItem {
 	var result []GroceryItem
 	splitTable := strings.Split(table, "\n")
 
