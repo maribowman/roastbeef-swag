@@ -67,7 +67,23 @@ func PreProcessMessageEvent(
 	return
 }
 
-func Remove(items []model.PantryItem, line string) []model.PantryItem {
+func UpdateHandlerItems(items []model.PantryItem, content string) []model.PantryItem {
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if removeRegex.MatchString(line) {
+			items = remove(items, line)
+		} else {
+			items = add(items, line)
+		}
+	}
+	return items
+}
+
+func remove(items []model.PantryItem, line string) []model.PantryItem {
 	result := make([]model.PantryItem, 0)
 	removeAllExcept := false
 
@@ -119,7 +135,7 @@ func Remove(items []model.PantryItem, line string) []model.PantryItem {
 	return result
 }
 
-func Add(items []model.PantryItem, line string) []model.PantryItem {
+func add(items []model.PantryItem, line string) []model.PantryItem {
 	leading := leadingQuantity.FindStringSubmatch(line)
 	trailing := trailingQuantity.FindStringSubmatch(line)
 

@@ -4,7 +4,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
-	"strings"
 )
 
 type TkHandler struct {
@@ -31,18 +30,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		return
 	}
 
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if removeRegex.MatchString(line) {
-			handler.inventory = Remove(items, line)
-		} else {
-			handler.inventory = Add(items, line)
-		}
-	}
+	handler.inventory = UpdateHandlerItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")

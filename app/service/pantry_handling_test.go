@@ -100,11 +100,11 @@ func TestRemove(t *testing.T) {
 			// and
 			var items []model.PantryItem
 			for i := 1; i < 10; i++ {
-				items = Add(items, fmt.Sprintf("item %d", i))
+				items = add(items, fmt.Sprintf("item %d", i))
 			}
 
 			// when
-			actual := Remove(items, test.content)
+			actual := remove(items, test.content)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)
@@ -147,7 +147,7 @@ func TestAdd(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := Add([]model.PantryItem{}, test.content)
+			actual := add([]model.PantryItem{}, test.content)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)

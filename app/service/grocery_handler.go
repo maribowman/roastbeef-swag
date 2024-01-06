@@ -4,7 +4,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
-	"strings"
 )
 
 type GroceryHandler struct {
@@ -31,18 +30,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		return
 	}
 
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if removeRegex.MatchString(line) {
-			handler.shoppingList = Remove(items, line)
-		} else {
-			handler.shoppingList = Add(items, line)
-		}
-	}
+	handler.shoppingList = UpdateHandlerItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
