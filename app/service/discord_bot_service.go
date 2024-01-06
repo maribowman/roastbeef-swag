@@ -63,10 +63,10 @@ func (bot *DiscordBot) InteractionDispatch(session *discordgo.Session, interacti
 		case discordgo.InteractionModalSubmit:
 			handler.ModalSubmitInteractionEvent(session, interaction)
 		default:
-			log.Debug().Msgf("Could not dispatch interaction event with type `%s`", interaction.Type)
+			log.Error().Msgf("Could not dispatch interaction event with type `%s`", interaction.Type)
 		}
 	} else {
-		log.Debug().Msgf("Could not match handler for interaction event on channel `%s`", interaction.ChannelID)
+		log.Error().Msgf("Could not match handler for interaction event on channel `%s`", interaction.ChannelID)
 	}
 }
 
