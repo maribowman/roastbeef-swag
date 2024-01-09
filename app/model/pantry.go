@@ -72,9 +72,24 @@ func ToMarkdownTable(items []PantryItem, dateFormat string) string {
 
 	var data [][]string
 	for _, item := range items {
+		tableItem := item.Item
+		if len(item.Item) > 20 {
+			tableItem = ""
+			itemSplit := strings.Split(item.Item, " ")
+			for _, split := range itemSplit {
+				if len(split) > 20 {
+					
+				}
+				if len(tableItem)+len(split)+1 > 20 {
+					tableItem += "\n"
+				}
+				tableItem += split + " "
+			}
+		}
+
 		data = append(data, []string{
 			strconv.Itoa(item.ID),
-			item.Item,
+			tableItem,
 			strconv.Itoa(item.Amount),
 			item.Date.Format(dateFormat)},
 		)

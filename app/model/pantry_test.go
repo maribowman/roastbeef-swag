@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestUpdateFromShoppingList(t *testing.T) {
+func TestUpdateFromList(t *testing.T) {
 	// given
 	tests := map[string]struct {
 		shoppingList []PantryItem
@@ -165,7 +165,37 @@ func TestUpdateFromShoppingList(t *testing.T) {
 	}
 }
 
-func TestFromShoppingListTable(t *testing.T) {
+func TestToMarkdownTable(t *testing.T) {
+	// given
+	tests := map[string]struct {
+		items    []PantryItem
+		expected string
+	}{
+		"simple conversion": {
+			items: []PantryItem{
+				{1, "12345 12345 12345 12345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+			},
+			expected: "```md\n" +
+				"| # |        ITEM        | QTY |  ADDED   |\n" +
+				"|---|--------------------|-----|----------|\n" +
+				"| 1 | 12345 12345 12345  | 1   | 27.12.23 |\n" +
+				"|    | 12345              |     |          |\n" +
+				"```",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			actual := ToMarkdownTable(test.items, "02.01.06")
+
+			// then
+			assert.EqualValues(t, test.expected, actual)
+		})
+	}
+}
+
+func TestFromMarkdownTable(t *testing.T) {
 	// given
 	tests := map[string]struct {
 		table    string
