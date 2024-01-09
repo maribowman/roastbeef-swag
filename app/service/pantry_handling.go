@@ -161,10 +161,10 @@ func add(items []model.PantryItem, line string) []model.PantryItem {
 	})
 }
 
-func PublishItems(items []model.PantryItem, session *discordgo.Session, channelID, messageID string) {
+func PublishItems(items []model.PantryItem, session *discordgo.Session, channelID, messageID, dateFormat string) {
 	if messageID != "" {
 		editedMessage := discordgo.NewMessageEdit(channelID, messageID)
-		editedMessage.SetContent(model.ToMarkdownTable(items, ""))
+		editedMessage.SetContent(model.ToMarkdownTable(items, dateFormat))
 		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 			log.Error().Err(err).Msgf("Could not edit message %s", messageID)
 		}
@@ -172,7 +172,7 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 	}
 
 	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content:    model.ToMarkdownTable(items, ""),
+		Content:    model.ToMarkdownTable(items, dateFormat),
 		Components: CreateMessageButtons(),
 	}); err != nil {
 		log.Error().Err(err).Msg("Could not send complex message")

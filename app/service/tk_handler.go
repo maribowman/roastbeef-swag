@@ -36,7 +36,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID)
+	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID, "02.01.06")
 }
 
 func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {

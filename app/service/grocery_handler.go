@@ -36,7 +36,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID)
+	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, "")
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
