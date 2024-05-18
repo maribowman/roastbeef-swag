@@ -38,7 +38,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, "")
+	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, handler.lineBreak, "02.01.")
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -69,7 +69,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, "02.01."),
+				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, "02.01."),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -92,7 +92,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, "02.01."),
+				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, "02.01."),
 				Components: CreateMessageButtons(),
 			},
 		}

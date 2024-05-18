@@ -187,7 +187,7 @@ func TestToMarkdownTable(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := ToMarkdownTable(test.items, "02.01.06")
+			actual := ToMarkdownTable(test.items, 20, "02.01.06")
 
 			// then
 			assert.EqualValues(t, test.expected, actual)

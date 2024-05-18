@@ -38,7 +38,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID, "02.01.06")
+	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID, handler.lineBreak, "02.01.06")
 }
 
 func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -69,7 +69,7 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, "02.01.06"),
+				Content:    model.ToMarkdownTable(handler.inventory, handler.lineBreak, "02.01.06"),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -92,7 +92,7 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, "02.01.06"),
+				Content:    model.ToMarkdownTable(handler.inventory, handler.lineBreak, "02.01.06"),
 				Components: CreateMessageButtons(),
 			},
 		}

@@ -65,7 +65,7 @@ func UpdateFromList(items []PantryItem, updatedList string) []PantryItem {
 	return items
 }
 
-func ToMarkdownTable(items []PantryItem, dateFormat string) string {
+func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) string {
 	var data [][]string
 	for _, item := range items {
 		tableItem := item.Item
