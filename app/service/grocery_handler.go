@@ -28,7 +28,7 @@ func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *dis
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
-	handler.shoppingList = UpdateHandlerItems(items, content)
+	handler.shoppingList = UpdateItems(items, content)
 	log.Debug().Msg("Initialized grocery handler")
 }
 
@@ -39,7 +39,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		return
 	}
 
-	handler.shoppingList = UpdateHandlerItems(items, content)
+	handler.shoppingList = UpdateItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
@@ -92,7 +92,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		handler.shoppingList = model.UpdateFromList(
+		handler.shoppingList = UpdateItemsFromList(
 			handler.shoppingList,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)

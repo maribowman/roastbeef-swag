@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-var idPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 
 type PantryItem struct {
 	ID     int
@@ -25,44 +22,9 @@ func ToList(items []PantryItem) string {
 		if index != 0 {
 			shoppingList += "\n"
 		}
-		shoppingList += fmt.Sprintf("[%d] %s", index+1, item.Item)
-		if item.Amount > 1 {
-			shoppingList += "\t" + "\t, " + strconv.Itoa(item.Amount)
-		}
+		shoppingList += fmt.Sprintf("[%d] %d %s", index+1, item.Amount, item.Item)
 	}
 	return shoppingList
-}
-
-func UpdateFromList(items []PantryItem, updatedList string) []PantryItem {
-	for _, update := range strings.Split(updatedList, "\n") {
-		if strings.TrimSpace(update) == "" {
-			continue
-		}
-
-		updateSplit := strings.Split(update, ",")
-		rawID := idPrefixRegex.FindStringSubmatch(updateSplit[0])
-		item := strings.TrimSpace(idPrefixRegex.ReplaceAllString(updateSplit[0], ""))
-
-		var id int
-		if len(rawID) == 2 { // matches full string + capture group
-			id, _ = strconv.Atoi(rawID[1])
-		} else {
-			id = len(items) + 1
-			items = append(items, PantryItem{
-				ID:   id,
-				Date: time.Now().Truncate(time.Minute),
-			})
-		}
-
-		items[id-1].Item = item
-		items[id-1].Amount = 1
-		if len(updateSplit) == 2 {
-			if amount, err := strconv.Atoi(strings.TrimSpace(updateSplit[1])); err == nil {
-				items[id-1].Amount = amount
-			}
-		}
-	}
-	return items
 }
 
 func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) string {

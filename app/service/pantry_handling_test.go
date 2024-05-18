@@ -8,6 +8,165 @@ import (
 	"time"
 )
 
+func TestUpdateFromList(t *testing.T) {
+	// given
+	tests := map[string]struct {
+		shoppingList []model.PantryItem
+		update       string
+		expected     []model.PantryItem
+	}{
+		"simple quantity update": {
+			shoppingList: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "[1] 3 bacon\n",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"simple item update": {
+			shoppingList: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "bac",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}},
+			update: "[1] 3 bacon\n",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"complex update": {
+			shoppingList: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "coffee",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "eggz",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "[1] 1 bacon\n[2] 2 eggs\n\n[3] milk",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"complex update + added items": {
+			shoppingList: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "eggos",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "bacon\n[1] 2 eggs\n[2] milk\n6 beer",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Item:   "bacon",
+					Amount: 1,
+					Date:   time.Now().Truncate(time.Minute),
+				}, {
+					ID:     4,
+					Item:   "beer",
+					Amount: 6,
+					Date:   time.Now().Truncate(time.Minute),
+				},
+			},
+		},
+		"remove item": {
+			shoppingList: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "eggos",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			update: "[1] 2 eggs\n",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Item:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			actual := UpdateItemsFromList(test.shoppingList, test.update)
+
+			// then
+			assert.EqualValues(t, test.expected, actual)
+		})
+	}
+}
+
 func TestRemove(t *testing.T) {
 	// given
 	tests := map[string]struct {
@@ -100,7 +259,7 @@ func TestRemove(t *testing.T) {
 			// and
 			var items []model.PantryItem
 			for i := 1; i < 10; i++ {
-				items = add(items, fmt.Sprintf("item %d", i))
+				items = add(items, fmt.Sprintf("item %d", i), time.Now().Truncate(time.Minute))
 			}
 
 			// when
@@ -147,7 +306,7 @@ func TestAdd(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := add([]model.PantryItem{}, test.content)
+			actual := add([]model.PantryItem{}, test.content, time.Now().Truncate(time.Minute))
 
 			// then
 			assert.EqualValues(t, test.expected, actual)

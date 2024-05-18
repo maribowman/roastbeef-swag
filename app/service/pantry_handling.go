@@ -23,6 +23,7 @@ const (
 )
 
 var (
+	idPrefixRegex    = regexp.MustCompile(`^\[(\d+)]\s`)
 	removeRegex      = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
 	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
 	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
@@ -64,7 +65,44 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat st
 	return
 }
 
-func UpdateHandlerItems(items []model.PantryItem, content string) []model.PantryItem {
+func UpdateItemsFromList(items []model.PantryItem, updatedList string) []model.PantryItem {
+	var updatedItems []model.PantryItem
+	var newItems []string
+
+	updates := strings.Split(updatedList, "\n")
+	for _, update := range updates {
+		if strings.TrimSpace(update) == "" {
+			continue
+		}
+
+		rawID := idPrefixRegex.FindStringSubmatch(update)
+		item := strings.TrimSpace(idPrefixRegex.ReplaceAllString(update, ""))
+		var id int
+		if len(rawID) == 2 { // regex matches full string + capture group
+			id, _ = strconv.Atoi(rawID[1])
+		} else { // add new item at the end if there's no ID
+			newItems = append(newItems, item)
+			continue
+		}
+		var getOldItemDate = func(oldItems []model.PantryItem) time.Time {
+			for _, oldItem := range oldItems {
+				if oldItem.ID == id {
+					return oldItem.Date
+				}
+			}
+			return time.Now().Truncate(time.Minute)
+		}
+
+		updatedItems = add(updatedItems, item, getOldItemDate(items))
+	}
+
+	for _, newItem := range newItems {
+		updatedItems = add(updatedItems, newItem, time.Now().Truncate(time.Minute))
+	}
+	return updatedItems
+}
+
+func UpdateItems(items []model.PantryItem, content string) []model.PantryItem {
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -74,7 +112,7 @@ func UpdateHandlerItems(items []model.PantryItem, content string) []model.Pantry
 		if removeRegex.MatchString(line) {
 			items = remove(items, line)
 		} else {
-			items = add(items, line)
+			items = add(items, line, time.Now().Truncate(time.Minute))
 		}
 	}
 	return items
@@ -132,7 +170,7 @@ func remove(items []model.PantryItem, line string) []model.PantryItem {
 	return result
 }
 
-func add(items []model.PantryItem, line string) []model.PantryItem {
+func add(items []model.PantryItem, line string, date time.Time) []model.PantryItem {
 	leading := leadingQuantity.FindStringSubmatch(line)
 	trailing := trailingQuantity.FindStringSubmatch(line)
 
@@ -154,7 +192,7 @@ func add(items []model.PantryItem, line string) []model.PantryItem {
 		ID:     len(items) + 1,
 		Item:   strings.TrimSpace(line),
 		Amount: amount,
-		Date:   time.Now().Truncate(time.Minute),
+		Date:   date,
 	})
 }
 

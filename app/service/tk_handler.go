@@ -28,7 +28,7 @@ func (handler *TkHandler) ReadyEvent(session *discordgo.Session, ready *discordg
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
-	handler.inventory = UpdateHandlerItems(items, content)
+	handler.inventory = UpdateItems(items, content)
 	log.Debug().Msg("Initialized tk handler")
 }
 
@@ -39,7 +39,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		return
 	}
 
-	handler.inventory = UpdateHandlerItems(items, content)
+	handler.inventory = UpdateItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
@@ -92,7 +92,7 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		handler.inventory = model.UpdateFromList(
+		handler.inventory = UpdateItemsFromList(
 			handler.inventory,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
