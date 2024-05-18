@@ -308,7 +308,7 @@ func TestFromMarkdownTable(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := FromMarkdownTable(test.table)
+			actual := FromMarkdownTable(test.table, "02.01.")
 
 			// then
 			assert.EqualValues(t, test.expected, actual)

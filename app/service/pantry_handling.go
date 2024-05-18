@@ -28,10 +28,7 @@ var (
 	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
 )
 
-func PreProcessMessageEvent(
-	session *discordgo.Session,
-	message *discordgo.MessageCreate,
-) (
+func PreProcessMessageEvent(session *discordgo.Session, message *discordgo.MessageCreate, dateFormat string) (
 	items []model.PantryItem,
 	lastBotMessageID string,
 	content string,
@@ -50,13 +47,13 @@ func PreProcessMessageEvent(
 			if lastBotMessage == nil {
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
-				items = model.FromMarkdownTable(msg.Content)
+				items = model.FromMarkdownTable(msg.Content, dateFormat)
 				continue
 			} else if lastBotMessage.Timestamp.After(msg.Timestamp) {
 				removableMessageIDs = append(removableMessageIDs, lastBotMessageID) // remove previous bot msg
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
-				items = model.FromMarkdownTable(msg.Content)
+				items = model.FromMarkdownTable(msg.Content, dateFormat)
 				continue
 			}
 		} else {

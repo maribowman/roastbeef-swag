@@ -139,7 +139,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	return writer.String()
 }
 
-func FromMarkdownTable(table string) []PantryItem {
+func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 	var result []PantryItem
 	splitTable := strings.Split(table, "\n")
 
@@ -158,13 +158,16 @@ func FromMarkdownTable(table string) []PantryItem {
 			continue
 		}
 		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
-		date, _ := time.Parse("02.01.", strings.TrimSpace(splitItem[4]))
+		date, _ := time.Parse(dateFormat, strings.TrimSpace(splitItem[4]))
+		if date.Year() <= 0 {
+			date = time.Date(time.Now().Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+		}
 
 		result = append(result, PantryItem{
 			ID:     id,
 			Item:   strings.TrimSpace(splitItem[2]),
 			Amount: amount,
-			Date:   time.Date(time.Now().Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local),
+			Date:   date,
 		})
 	}
 	return result

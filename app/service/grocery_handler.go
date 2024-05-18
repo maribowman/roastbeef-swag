@@ -27,7 +27,7 @@ func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *dis
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message)
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message, "02.01.")
 	if err != nil {
 		return
 	}

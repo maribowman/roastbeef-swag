@@ -7,10 +7,10 @@ import (
 )
 
 type TkHandler struct {
-	channelID     string
-	lineBreak     int
-	inventory     []model.PantryItem
-	lastInventory string
+	channelID         string
+	lineBreak         int
+	inventory         []model.PantryItem
+	previousInventory string // use to undo actions
 }
 
 func NewTkHandler(channelID string, lineBreak int) model.BotHandler {
@@ -27,7 +27,7 @@ func (handler *TkHandler) ReadyEvent(session *discordgo.Session, ready *discordg
 }
 
 func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message)
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message, "02.01.06")
 	if err != nil {
 		return
 	}
