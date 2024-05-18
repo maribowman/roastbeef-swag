@@ -66,10 +66,6 @@ func UpdateFromList(items []PantryItem, updatedList string) []PantryItem {
 }
 
 func ToMarkdownTable(items []PantryItem, dateFormat string) string {
-	if dateFormat == "" {
-		dateFormat = "02.01."
-	}
-
 	var data [][]string
 	for _, item := range items {
 		tableItem := item.Item
@@ -78,7 +74,7 @@ func ToMarkdownTable(items []PantryItem, dateFormat string) string {
 			itemSplit := strings.Split(item.Item, " ")
 			for _, split := range itemSplit {
 				if len(split) > 20 {
-					
+
 				}
 				if len(tableItem)+len(split)+1 > 20 {
 					tableItem += "\n"

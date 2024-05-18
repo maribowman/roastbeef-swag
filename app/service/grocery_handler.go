@@ -69,7 +69,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
+				Content:    model.ToMarkdownTable(handler.shoppingList, "02.01."),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -92,7 +92,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, ""),
+				Content:    model.ToMarkdownTable(handler.shoppingList, "02.01."),
 				Components: CreateMessageButtons(),
 			},
 		}
