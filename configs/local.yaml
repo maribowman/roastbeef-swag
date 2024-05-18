@@ -10,5 +10,9 @@ discord:
   token: BOT_TOKEN
   botID: BOT_ID
   channels:
-    groceries: 1084632136180572230
-    tkGoods: 1146023101755293786
+    - name: groceries
+      id: 1084632136180572230
+      lineBreak: 20
+    - name: tkGoods
+      id: 1146023101755293786
+      lineBreak: 18

@@ -19,12 +19,22 @@ func NewDiscordBot() model.DiscordBot {
 		log.Fatal().Err(err).Msg("Error creating Discord session")
 	}
 
+	handlers := map[string]model.BotHandler{}
+	for _, channel := range config.Config.Discord.Channels {
+		switch channel.Name {
+		case GroceriesChannel:
+			handlers[channel.ID] = NewGroceryHandler(channel.ID, channel.LineBreak)
+			continue
+		case TkGoodsChannel:
+			handlers[channel.ID] = NewTkHandler(channel.ID, channel.LineBreak)
+			continue
+		}
+		log.Error().Msgf("Could not map channel `%s` to handler", channel.Name)
+	}
+
 	bot := DiscordBot{
-		session: session,
-		handlers: map[string]model.BotHandler{
-			config.Config.Discord.Channels[GroceriesChannel]: NewGroceryHandler(config.Config.Discord.Channels[GroceriesChannel]),
-			config.Config.Discord.Channels[TkGoodsChannel]:   NewTkHandler(config.Config.Discord.Channels[TkGoodsChannel]),
-		},
+		session:  session,
+		handlers: handlers,
 	}
 
 	bot.session.AddHandler(bot.Ready)

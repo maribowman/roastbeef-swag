@@ -8,14 +8,16 @@ import (
 
 type GroceryHandler struct {
 	channelID        string
+	lineBreak        int
 	shoppingList     []model.PantryItem
 	lastShoppingList string
 }
 
-func NewGroceryHandler(channelID string) model.BotHandler {
+func NewGroceryHandler(channelID string, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
 		channelID: channelID,
+		lineBreak: lineBreak,
 	}
 }
 

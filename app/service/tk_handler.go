@@ -8,14 +8,16 @@ import (
 
 type TkHandler struct {
 	channelID     string
+	lineBreak     int
 	inventory     []model.PantryItem
 	lastInventory string
 }
 
-func NewTkHandler(channelID string) model.BotHandler {
+func NewTkHandler(channelID string, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering tk handler")
 	return &TkHandler{
 		channelID: channelID,
+		lineBreak: lineBreak,
 	}
 }
 
