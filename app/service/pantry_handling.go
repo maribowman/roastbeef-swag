@@ -17,7 +17,7 @@ const (
 	TkGoodsChannel   = "tkGoods"
 
 	EditButton     = "edit-button"
-	DoneButton     = "done-button"
+	UndoButton     = "undo-button"
 	EditModal      = "edit-modal"
 	EditModalInput = "edit-modal-input"
 )
@@ -227,10 +227,10 @@ func CreateMessageButtons() []discordgo.MessageComponent {
 				},
 				discordgo.Button{
 					Emoji: discordgo.ComponentEmoji{
-						Name: "🏁",
+						Name: "🔙",
 					},
 					Style:    discordgo.SecondaryButton,
-					CustomID: DoneButton,
+					CustomID: UndoButton,
 				},
 			},
 		},

@@ -10,7 +10,7 @@ type TkHandler struct {
 	channelID         string
 	lineBreak         int
 	inventory         []model.PantryItem
-	previousInventory string // use to undo actions
+	previousInventory []model.PantryItem // use to undo actions
 }
 
 func NewTkHandler(channelID string, lineBreak int) model.BotHandler {
@@ -39,6 +39,7 @@ func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *disc
 		return
 	}
 
+	handler.previousInventory = handler.inventory
 	handler.inventory = UpdateItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
@@ -71,8 +72,8 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 				},
 			},
 		}
-	case DoneButton:
-		handler.inventory = []model.PantryItem{}
+	case UndoButton:
+		handler.inventory = handler.previousInventory
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -92,6 +93,7 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
+		handler.previousInventory = handler.inventory
 		handler.inventory = UpdateItemsFromList(
 			handler.inventory,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,

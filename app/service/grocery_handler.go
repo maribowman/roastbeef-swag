@@ -10,7 +10,7 @@ type GroceryHandler struct {
 	channelID            string
 	lineBreak            int
 	shoppingList         []model.PantryItem
-	previousShoppingList string
+	previousShoppingList []model.PantryItem
 }
 
 func NewGroceryHandler(channelID string, lineBreak int) model.BotHandler {
@@ -39,6 +39,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		return
 	}
 
+	handler.previousShoppingList = handler.shoppingList
 	handler.shoppingList = UpdateItems(items, content)
 
 	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
@@ -71,8 +72,8 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 				},
 			},
 		}
-	case DoneButton:
-		handler.shoppingList = []model.PantryItem{}
+	case UndoButton:
+		handler.shoppingList = handler.previousShoppingList
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -92,6 +93,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
+		handler.previousShoppingList = handler.shoppingList
 		handler.shoppingList = UpdateItemsFromList(
 			handler.shoppingList,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
