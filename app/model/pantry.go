@@ -149,7 +149,14 @@ func FromMarkdownTable(table string) []PantryItem {
 		}
 
 		splitItem := strings.Split(item, "|")
-		id, _ := strconv.Atoi(strings.TrimSpace(splitItem[1]))
+		id, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
+		if err != nil {
+			// overwriting last item -> assuming it is a multi-line item because it does not have an ID
+			lastItem := result[len(result)-1]
+			lastItem.Item += " " + strings.TrimSpace(splitItem[2])
+			result[len(result)-1] = lastItem
+			continue
+		}
 		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
 		date, _ := time.Parse("02.01.", strings.TrimSpace(splitItem[4]))
 

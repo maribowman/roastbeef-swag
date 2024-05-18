@@ -281,6 +281,28 @@ func TestFromMarkdownTable(t *testing.T) {
 				},
 			},
 		},
+		"multi-line conversion": {
+			table: "```md\n" +
+				"| # |     ITEM     | QTY | ADDED  |\n" +
+				"|---|--------------|-----|--------|\n" +
+				"| 1 | eggs         | 4   | 24.12. |\n" +
+				"| 2 | coffee and   | 1   | 25.12. |\n" +
+				"|   | more coffee  |     |        |\n" +
+				"```",
+			expected: []PantryItem{
+				{
+					ID:     1,
+					Item:   "eggs",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Item:   "coffee and more coffee",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 25, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
