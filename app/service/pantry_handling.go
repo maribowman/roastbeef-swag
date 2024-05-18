@@ -55,6 +55,7 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat st
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
 				items = model.FromMarkdownTable(msg.Content, dateFormat)
+				// TODO read from file if present
 				continue
 			}
 		} else {
@@ -196,21 +197,54 @@ func add(items []model.PantryItem, line string, date time.Time) []model.PantryIt
 	})
 }
 
+// PublishItems sends the latest []PantryItem state to the active channel (via new or edited message).
+// Because of a character limit of 2000, the function automatically splits the Markdown table line by line
+// and sends multiple messages to the channel. The last message always contains the buttons to interact with the bot.
 func PublishItems(items []model.PantryItem, session *discordgo.Session, channelID, messageID string, lineBreak int, dateFormat string) {
-	if messageID != "" {
-		editedMessage := discordgo.NewMessageEdit(channelID, messageID)
-		editedMessage.SetContent(model.ToMarkdownTable(items, lineBreak, dateFormat))
-		if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
-			log.Error().Err(err).Msgf("Could not edit message %s", messageID)
-		}
-		return
-	}
+	markdownTable := model.ToMarkdownTable(items, lineBreak, dateFormat)
 
-	if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-		Content:    model.ToMarkdownTable(items, lineBreak, dateFormat),
-		Components: CreateMessageButtons(),
-	}); err != nil {
-		log.Error().Err(err).Msg("Could not send complex message")
+	if len(markdownTable) <= 2000 { // 2000 is the message length limit
+		if messageID != "" { // update existing message
+			editedMessage := discordgo.NewMessageEdit(channelID, messageID)
+			editedMessage.SetContent(markdownTable)
+			if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
+				log.Error().Err(err).Msgf("Could not edit message %s", messageID)
+			}
+		} else {
+			if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+				Content:    model.ToMarkdownTable(items, lineBreak, dateFormat),
+				Components: CreateMessageButtons(),
+			}); err != nil {
+				log.Error().Err(err).Msg("Could not send complex message")
+			}
+		}
+	} else { // split table line by line
+		markdownTableSplit := strings.Split(markdownTable, "\n")
+		tempTable := ""
+
+		for _, line := range markdownTableSplit {
+			if len(tempTable)+len(line) <= 1980 {
+				tempTable += line + "\n"
+				continue
+			}
+			tempTable += "...```"
+
+			if messageID != "" {
+				editedMessage := discordgo.NewMessageEdit(channelID, messageID)
+				editedMessage.SetContent(tempTable)
+				if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
+					log.Error().Err(err).Msgf("Could not edit message %s", messageID)
+				}
+			} else {
+				if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+					Content:    tempTable,
+					Components: CreateMessageButtons(),
+				}); err != nil {
+					log.Error().Err(err).Msg("Could not send complex message")
+				}
+			}
+			return
+		}
 	}
 }
 
@@ -219,14 +253,14 @@ func CreateMessageButtons() []discordgo.MessageComponent {
 		discordgo.ActionsRow{
 			Components: []discordgo.MessageComponent{
 				discordgo.Button{
-					Emoji: discordgo.ComponentEmoji{
+					Emoji: &discordgo.ComponentEmoji{
 						Name: "📝",
 					},
 					Style:    discordgo.SecondaryButton,
 					CustomID: EditButton,
 				},
 				discordgo.Button{
-					Emoji: discordgo.ComponentEmoji{
+					Emoji: &discordgo.ComponentEmoji{
 						Name: "🔙",
 					},
 					Style:    discordgo.SecondaryButton,

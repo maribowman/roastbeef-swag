@@ -48,6 +48,11 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 					charsLeft := linebreak - len(tableItemLine) - 1
 					tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
 					tableItemLine = split[charsLeft:]
+					// split a second time in rare case of a mega long word
+					if len(tableItemLine) > linebreak {
+						tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
+						tableItemLine = tableItemLine[linebreak-1:]
+					}
 				} else if len(tableItemLine)+len(split) > linebreak {
 					// create new line before table item line gets too long
 					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
@@ -115,7 +120,11 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 		if err != nil {
 			// overwriting last item -> assuming it is a multi-line item because it does not have an ID
 			lastItem := result[len(result)-1]
-			lastItem.Item += " " + strings.TrimSpace(splitItem[2])
+			if strings.HasSuffix(lastItem.Item, "-") {
+				lastItem.Item = strings.TrimSuffix(lastItem.Item, "-") + strings.TrimSpace(splitItem[2])
+			} else {
+				lastItem.Item += " " + strings.TrimSpace(splitItem[2])
+			}
 			result[len(result)-1] = lastItem
 			continue
 		}
