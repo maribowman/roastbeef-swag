@@ -23,12 +23,19 @@ func NewTkHandler(channelID string, lineBreak int) model.BotHandler {
 
 func (handler *TkHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
+	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.06")
+	if err != nil {
+		log.Error().Err(err).Msg("Error while processing message event")
+		return
+	}
+	handler.inventory = UpdateHandlerItems(items, content)
 	log.Debug().Msg("Initialized tk handler")
 }
 
 func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message, "02.01.06")
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, "02.01.06")
 	if err != nil {
+		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
 

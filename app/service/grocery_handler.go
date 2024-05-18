@@ -7,10 +7,10 @@ import (
 )
 
 type GroceryHandler struct {
-	channelID        string
-	lineBreak        int
-	shoppingList     []model.PantryItem
-	lastShoppingList string
+	channelID            string
+	lineBreak            int
+	shoppingList         []model.PantryItem
+	previousShoppingList string
 }
 
 func NewGroceryHandler(channelID string, lineBreak int) model.BotHandler {
@@ -23,12 +23,19 @@ func NewGroceryHandler(channelID string, lineBreak int) model.BotHandler {
 
 func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
+	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.")
+	if err != nil {
+		log.Error().Err(err).Msg("Error while processing message event")
+		return
+	}
+	handler.shoppingList = UpdateHandlerItems(items, content)
 	log.Debug().Msg("Initialized grocery handler")
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, message, "02.01.")
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, "02.01.")
 	if err != nil {
+		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
 

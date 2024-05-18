@@ -28,14 +28,14 @@ var (
 	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
 )
 
-func PreProcessMessageEvent(session *discordgo.Session, message *discordgo.MessageCreate, dateFormat string) (
+func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat string) (
 	items []model.PantryItem,
 	lastBotMessageID string,
 	content string,
 	removableMessageIDs []string,
 	err error,
 ) {
-	channelMessages, err_ := session.ChannelMessages(message.ChannelID, 100, "", "", "")
+	channelMessages, err_ := session.ChannelMessages(channelID, 100, "", "", "")
 	if err_ != nil {
 		err = err_
 		return
