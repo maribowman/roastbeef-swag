@@ -68,27 +68,57 @@ func UpdateFromList(items []PantryItem, updatedList string) []PantryItem {
 func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) string {
 	var data [][]string
 	for _, item := range items {
-		tableItem := item.Item
-		if len(item.Item) > 20 {
-			tableItem = ""
-			itemSplit := strings.Split(item.Item, " ")
-			for _, split := range itemSplit {
-				if len(split) > 20 {
+		tableItemLines := []string{}
 
+		if len(item.Item) < linebreak {
+			tableItemLines = append(tableItemLines, item.Item)
+		} else {
+			// split item in white space separated chunks
+			tableItemLine := ""
+			itemSplit := strings.Split(item.Item, " ")
+
+			for index, split := range itemSplit {
+				if len(tableItemLine) != 0 {
+					tableItemLine += " "
 				}
-				if len(tableItem)+len(split)+1 > 20 {
-					tableItem += "\n"
+				if len(split) > linebreak {
+					// split too long item word
+					charsLeft := linebreak - len(tableItemLine) - 1
+					tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
+					tableItemLine = split[charsLeft:]
+				} else if len(tableItemLine)+len(split) > linebreak {
+					// create new line before table item line gets too long
+					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					// reset table item line
+					tableItemLine = split
+				} else {
+					tableItemLine += split
 				}
-				tableItem += split + " "
+				// wrap up last line
+				if index == len(itemSplit)-1 {
+					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					tableItemLine = ""
+				}
 			}
 		}
 
-		data = append(data, []string{
-			strconv.Itoa(item.ID),
-			tableItem,
-			strconv.Itoa(item.Amount),
-			item.Date.Format(dateFormat)},
-		)
+		for index, tableItemLine := range tableItemLines {
+			if index == 0 {
+				data = append(data, []string{
+					strconv.Itoa(item.ID),
+					tableItemLine,
+					strconv.Itoa(item.Amount),
+					item.Date.Format(dateFormat)},
+				)
+			} else {
+				data = append(data, []string{
+					strconv.Itoa(item.ID),
+					tableItemLine,
+					"",
+					""},
+				)
+			}
+		}
 	}
 
 	writer := bytes.Buffer{}
@@ -100,6 +130,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 	table.SetCenterSeparator("|")
+	table.SetAutoMergeCellsByColumnIndex([]int{0})
 	table.AppendBulk(data)
 	table.Render()
 
