@@ -1,4 +1,4 @@
-FROM golang:1.21.1-alpine3.18 AS builder
+FROM golang:1.21.3-alpine3.18 AS builder
 RUN apk update && apk --no-cache add build-base
 LABEL stage=builder
 WORKDIR /building-site
