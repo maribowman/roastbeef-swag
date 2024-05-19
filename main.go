@@ -56,7 +56,7 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	databaseClient.CloseDatabaseConnections()
+	databaseClient.CloseDatabaseConnection()
 	bot.CloseSession()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -3,12 +3,13 @@ package service
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
+	"github.com/maribowman/roastbeef-swag/app/repository"
 	"github.com/rs/zerolog/log"
 )
 
 type GroceryHandler struct {
 	channelID            string
-	databaseClient       model.DatabaseClient
+	pantryClient         model.PantryClient
 	lineBreak            int
 	shoppingList         []model.PantryItem
 	previousShoppingList []model.PantryItem
@@ -17,9 +18,9 @@ type GroceryHandler struct {
 func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
-		channelID:      channelID,
-		databaseClient: databaseClient,
-		lineBreak:      lineBreak,
+		channelID:    channelID,
+		pantryClient: repository.NewPantrySqliteClient(databaseClient, "groceries"),
+		lineBreak:    lineBreak,
 	}
 }
 

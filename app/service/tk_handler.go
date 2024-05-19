@@ -3,12 +3,13 @@ package service
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
+	"github.com/maribowman/roastbeef-swag/app/repository"
 	"github.com/rs/zerolog/log"
 )
 
 type TkHandler struct {
 	channelID         string
-	databaseClient    model.DatabaseClient
+	pantryClient      model.PantryClient
 	lineBreak         int
 	inventory         []model.PantryItem
 	previousInventory []model.PantryItem // use to undo actions
@@ -17,9 +18,9 @@ type TkHandler struct {
 func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering tk handler")
 	return &TkHandler{
-		channelID:      channelID,
-		databaseClient: databaseClient,
-		lineBreak:      lineBreak,
+		channelID:    channelID,
+		pantryClient: repository.NewPantrySqliteClient(databaseClient, "tk"),
+		lineBreak:    lineBreak,
 	}
 }
 

@@ -46,7 +46,11 @@ func initSqliteConnection() *sql.DB {
 	return sqlite
 }
 
-func (client *DatabaseClient) CloseDatabaseConnections() {
+func (client *DatabaseClient) GetDatabaseConnection() *sql.DB {
+	return client.sqlite
+}
+
+func (client *DatabaseClient) CloseDatabaseConnection() {
 	if err := client.sqlite.Close(); err != nil {
 		log.Warn().Err(err).Msg("Unable to close database connection")
 	}

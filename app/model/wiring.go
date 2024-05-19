@@ -1,6 +1,9 @@
 package model
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"database/sql"
+	"github.com/bwmarrin/discordgo"
+)
 
 type DiscordBot interface {
 	Ready(*discordgo.Session, *discordgo.Ready)
@@ -17,5 +20,13 @@ type BotHandler interface {
 }
 
 type DatabaseClient interface {
-	CloseDatabaseConnections()
+	GetDatabaseConnection() *sql.DB
+	CloseDatabaseConnection()
+}
+
+type PantryClient interface {
+	AddItem(PantryItem) (int, error)
+	UpdateItem(PantryItem) error
+	RemoveItem(int) error
+	GetItems() ([]PantryItem, error)
 }

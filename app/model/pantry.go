@@ -11,9 +11,14 @@ import (
 
 type PantryItem struct {
 	ID     int
+	Number int
 	Item   string
 	Amount int
 	Date   time.Time
+}
+
+func (item *PantryItem) ToString() string {
+	return fmt.Sprintf("id: `%d`; number:`%d`' item: `%s`; amount: `%d`; date: `%s`", item.ID, item.Number, item.Item, item.Amount, item.Date.Format("02.01.06"))
 }
 
 func ToList(items []PantryItem) string {
