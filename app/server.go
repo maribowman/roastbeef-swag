@@ -11,11 +11,11 @@ import (
 	"net/http"
 )
 
-func InitServer() (*http.Server, model.DiscordBot, error) {
+func InitServer(databaseClient model.DatabaseClient) (*http.Server, model.DiscordBot, error) {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Config.Server.Port),
 		Handler: injectRouter(),
-	}, service.NewDiscordBot(), nil
+	}, service.NewDiscordBot(databaseClient), nil
 }
 
 func injectRouter() *gin.Engine {

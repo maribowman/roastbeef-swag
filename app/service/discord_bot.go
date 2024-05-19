@@ -13,7 +13,7 @@ type DiscordBot struct {
 	handlers map[string]model.BotHandler
 }
 
-func NewDiscordBot() model.DiscordBot {
+func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 	session, err := discordgo.New(fmt.Sprintf("Bot %s", config.Config.Discord.Token))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating Discord session")
@@ -23,10 +23,10 @@ func NewDiscordBot() model.DiscordBot {
 	for _, channel := range config.Config.Discord.Channels {
 		switch channel.Name {
 		case GroceriesChannel:
-			handlers[channel.ID] = NewGroceryHandler(channel.ID, channel.LineBreak)
+			handlers[channel.ID] = NewGroceryHandler(channel.ID, databaseClient, channel.LineBreak)
 			continue
 		case TkGoodsChannel:
-			handlers[channel.ID] = NewTkHandler(channel.ID, channel.LineBreak)
+			handlers[channel.ID] = NewTkHandler(channel.ID, databaseClient, channel.LineBreak)
 			continue
 		}
 		log.Error().Msgf("Could not map channel `%s` to handler", channel.Name)

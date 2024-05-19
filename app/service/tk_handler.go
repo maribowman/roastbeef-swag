@@ -8,16 +8,18 @@ import (
 
 type TkHandler struct {
 	channelID         string
+	databaseClient    model.DatabaseClient
 	lineBreak         int
 	inventory         []model.PantryItem
 	previousInventory []model.PantryItem // use to undo actions
 }
 
-func NewTkHandler(channelID string, lineBreak int) model.BotHandler {
+func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering tk handler")
 	return &TkHandler{
-		channelID: channelID,
-		lineBreak: lineBreak,
+		channelID:      channelID,
+		databaseClient: databaseClient,
+		lineBreak:      lineBreak,
 	}
 }
 

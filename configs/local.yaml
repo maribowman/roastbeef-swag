@@ -18,4 +18,4 @@ discord:
       lineBreak: 18
 
 database:
-  path: /data/pantry.db
+  sqlite: /data/pantry.db

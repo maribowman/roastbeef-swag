@@ -15,3 +15,7 @@ type BotHandler interface {
 	MessageComponentInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate)
 	ModalSubmitInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate)
 }
+
+type DatabaseClient interface {
+	CloseDatabaseConnections()
+}
