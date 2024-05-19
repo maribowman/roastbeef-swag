@@ -23,10 +23,10 @@ const (
 )
 
 var (
-	idPrefixRegex    = regexp.MustCompile(`^\[(\d+)]\s`)
-	removeRegex      = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
-	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
-	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
+	NumberPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
+	removeRegex       = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
+	leadingQuantity   = regexp.MustCompile(`^(\d+)\s.*`)
+	trailingQuantity  = regexp.MustCompile(`\s(\d+)$`)
 )
 
 func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat string) (
@@ -76,18 +76,18 @@ func UpdateItemsFromList(items []model.PantryItem, updatedList string) []model.P
 			continue
 		}
 
-		rawID := idPrefixRegex.FindStringSubmatch(update)
-		item := strings.TrimSpace(idPrefixRegex.ReplaceAllString(update, ""))
-		var id int
-		if len(rawID) == 2 { // regex matches full string + capture group
-			id, _ = strconv.Atoi(rawID[1])
-		} else { // add new item at the end if there's no ID
+		rawNumber := NumberPrefixRegex.FindStringSubmatch(update)
+		item := strings.TrimSpace(NumberPrefixRegex.ReplaceAllString(update, ""))
+		var number int
+		if len(rawNumber) == 2 { // regex matches full string + capture group
+			number, _ = strconv.Atoi(rawNumber[1])
+		} else { // add new item at the end if there's no number
 			newItems = append(newItems, item)
 			continue
 		}
 		var getOldItemDate = func(oldItems []model.PantryItem) time.Time {
 			for _, oldItem := range oldItems {
-				if oldItem.ID == id {
+				if oldItem.Number == number {
 					return oldItem.Date
 				}
 			}
@@ -136,36 +136,36 @@ func remove(items []model.PantryItem, line string) []model.PantryItem {
 		}
 	}
 
-	// add single removable IDs
-	var ids []int
+	// add single removable numbers
+	var numbers []int
 	if captureGroups[0] != captureGroups[2] {
 		for _, value := range strings.Split(captureGroups[0], " ") {
-			if id, err := strconv.Atoi(value); err == nil {
-				ids = append(ids, id)
+			if number, err := strconv.Atoi(value); err == nil {
+				numbers = append(numbers, number)
 			}
 		}
 	}
 
-	// add range to removable IDs
+	// add range to removable numbers
 	if captureGroups[2] != "" {
 		range_ := strings.Split(captureGroups[2], "-")
 		rangeStart, _ := strconv.Atoi(range_[0])
 		rangeEnd, _ := strconv.Atoi(range_[1])
 
 		for i := rangeStart; i <= rangeEnd; i++ {
-			ids = append(ids, i)
+			numbers = append(numbers, i)
 		}
 	}
 
 	for _, entry := range items {
-		if slices.Contains(ids, entry.ID) {
+		if slices.Contains(numbers, entry.Number) {
 			if !removeAllExcept {
 				continue
 			}
 		} else if removeAllExcept {
 			continue
 		}
-		entry.ID = len(result) + 1
+		entry.Number = len(result) + 1
 		result = append(result, entry)
 	}
 	return result
@@ -190,7 +190,7 @@ func add(items []model.PantryItem, line string, date time.Time) []model.PantryIt
 	}
 
 	return append(items, model.PantryItem{
-		ID:     len(items) + 1,
+		Number: len(items) + 1,
 		Item:   strings.TrimSpace(line),
 		Amount: amount,
 		Date:   date,

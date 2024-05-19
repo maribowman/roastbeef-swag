@@ -77,14 +77,14 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 		for index, tableItemLine := range tableItemLines {
 			if index == 0 {
 				data = append(data, []string{
-					strconv.Itoa(item.ID),
+					strconv.Itoa(item.Number),
 					tableItemLine,
 					strconv.Itoa(item.Amount),
 					item.Date.Format(dateFormat)},
 				)
 			} else {
 				data = append(data, []string{
-					strconv.Itoa(item.ID),
+					strconv.Itoa(item.Number),
 					tableItemLine,
 					"",
 					""},
@@ -121,9 +121,9 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 		}
 
 		splitItem := strings.Split(item, "|")
-		id, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
+		number, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
 		if err != nil {
-			// overwriting last item -> assuming it is a multi-line item because it does not have an ID
+			// overwriting last item -> assuming it is a multi-line item because it does not have a number
 			lastItem := result[len(result)-1]
 			if strings.HasSuffix(lastItem.Item, "-") {
 				lastItem.Item = strings.TrimSuffix(lastItem.Item, "-") + strings.TrimSpace(splitItem[2])
@@ -140,7 +140,7 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 		}
 
 		result = append(result, PantryItem{
-			ID:     id,
+			Number: number,
 			Item:   strings.TrimSpace(splitItem[2]),
 			Amount: amount,
 			Date:   date,
