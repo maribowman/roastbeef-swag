@@ -10,9 +10,10 @@ import (
 var Config = loadConfig()
 
 type config struct {
-	Server  ServerConfig
-	Logging LoggingConfig
-	Discord DiscordConfig
+	Server   ServerConfig
+	Logging  LoggingConfig
+	Discord  DiscordConfig
+	Database DatabaseConfig
 }
 
 func loadConfig() config {

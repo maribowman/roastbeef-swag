@@ -15,4 +15,7 @@ discord:
       lineBreak: 20
     - name: tkGoods
       id: 1146023101755293786
-      lineBreak: 19
+      lineBreak: 18
+
+database:
+  path: /data/pantry.db
