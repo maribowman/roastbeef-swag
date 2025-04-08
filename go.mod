@@ -2,8 +2,6 @@ module github.com/maribowman/roastbeef-swag
 
 go 1.24.1
 
-toolchain go1.24.1
-
 require (
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/gin-gonic/gin v1.10.0
