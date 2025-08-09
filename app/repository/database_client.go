@@ -2,11 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
+
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
-	"os"
 )
 
 type DatabaseClient struct {
@@ -20,15 +22,16 @@ func NewDatabaseClient() model.DatabaseClient {
 }
 
 func initSqliteConnection() *sql.DB {
-	_, err := os.Stat(config.Config.Database.Sqlite)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(config.Config.Database.Sqlite); os.IsNotExist(err) {
 		log.Info().Msg("No sqlite file present -> creating one")
-		_ = os.MkdirAll(config.Config.Database.Sqlite, os.ModePerm)
+		_ = os.MkdirAll(filepath.Dir(config.Config.Database.Sqlite), 0755)
 		if file, err := os.Create(config.Config.Database.Sqlite); err != nil {
 			log.Fatal().Err(err).Msg("Could not create sqlite file")
 		} else {
 			defer file.Close()
 		}
+	} else {
+		log.Info().Msg("Sqlite file exists, using existing one")
 	}
 
 	log.Debug().Msg("Opening sqlite connection")

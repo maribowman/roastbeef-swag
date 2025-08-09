@@ -3,10 +3,13 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 type PantryItem struct {
@@ -40,7 +43,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 		if len(item.Item) < linebreak {
 			tableItemLines = append(tableItemLines, item.Item)
 		} else {
-			// split item in white space separated chunks
+			// Split item in whitespace separated chunks
 			tableItemLine := ""
 			itemSplit := strings.Split(item.Item, " ")
 
@@ -49,24 +52,24 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 					tableItemLine += " "
 				}
 				if len(split) > linebreak {
-					// split too long item word
+					// Split too long item word
 					charsLeft := linebreak - len(tableItemLine) - 1
 					tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
 					tableItemLine = split[charsLeft:]
-					// split a second time in rare case of a mega long word
+					// Split a second time in rare case of a mega long word
 					if len(tableItemLine) > linebreak {
 						tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
 						tableItemLine = tableItemLine[linebreak-1:]
 					}
 				} else if len(tableItemLine)+len(split) > linebreak {
-					// create new line before table item line gets too long
+					// Create newline before table item line gets too long
 					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
 					// reset table item line
 					tableItemLine = split
 				} else {
 					tableItemLine += split
 				}
-				// wrap up last line
+				// Wrap up last line
 				if index == len(itemSplit)-1 {
 					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
 					tableItemLine = ""
@@ -96,14 +99,35 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	writer := bytes.Buffer{}
 	writer.WriteString("```md\n")
 
-	table := tablewriter.NewWriter(&writer)
-	table.SetHeader([]string{"#", "ITEM", "QTY", "ADDED"})
-	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetCenterSeparator("|")
-	table.SetAutoMergeCellsByColumnIndex([]int{0})
-	table.AppendBulk(data)
+	// table := tablewriter.NewWriter(&writer)
+
+	table := tablewriter.NewTable(&writer,
+		tablewriter.WithRenderer(renderer.NewMarkdown(
+			tw.Rendition{Borders: tw.Border{
+				Left:   tw.On,
+				Top:    tw.Off,
+				Right:  tw.On,
+				Bottom: tw.Off,
+			}},
+		)),
+		tablewriter.WithConfig(tablewriter.Config{
+			Header: tw.CellConfig{
+				Alignment: tw.CellAlignment{Global: tw.AlignCenter},
+			},
+			Row: tw.CellConfig{
+				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+			},
+		}),
+	)
+
+	// table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
+	// table.SetAlignment(tablewriter.ALIGN_LEFT)
+	// table.SetBorder(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	// table.SetCenterSeparator("|")
+	// table.SetAutoMergeCellsByColumnIndex([]int{0})
+
+	table.Header([]string{"#", "ITEM", "QTY", "ADDED"})
+	table.Bulk(data)
 	table.Render()
 
 	writer.WriteString("```")

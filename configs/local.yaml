@@ -18,4 +18,5 @@ discord:
       lineBreak: 18
 
 database:
-  sqlite: /data/pantry.db
+  sqlite: roastbeef-swag.db
+

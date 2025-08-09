@@ -8,19 +8,19 @@ import (
 )
 
 type TkHandler struct {
-	channelID         string
-	pantryClient      model.PantryClient
-	lineBreak         int
-	inventory         []model.PantryItem
-	previousInventory []model.PantryItem // use to undo actions
+	channelID          string
+	pantrySqliteClient model.PantryClient
+	lineBreak          int
+	inventory          []model.PantryItem
+	previousInventory  []model.PantryItem // use to undo actions
 }
 
 func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering tk handler")
 	return &TkHandler{
-		channelID:    channelID,
-		pantryClient: repository.NewPantrySqliteClient(databaseClient, "tk"),
-		lineBreak:    lineBreak,
+		channelID:          channelID,
+		pantrySqliteClient: repository.NewPantrySqliteClient(databaseClient, "tk"),
+		lineBreak:          lineBreak,
 	}
 }
 

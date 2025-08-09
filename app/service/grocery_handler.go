@@ -9,7 +9,7 @@ import (
 
 type GroceryHandler struct {
 	channelID            string
-	pantryClient         model.PantryClient
+	pantrySqliteClient   model.PantryClient
 	lineBreak            int
 	shoppingList         []model.PantryItem
 	previousShoppingList []model.PantryItem
@@ -18,9 +18,9 @@ type GroceryHandler struct {
 func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
-		channelID:    channelID,
-		pantryClient: repository.NewPantrySqliteClient(databaseClient, "groceries"),
-		lineBreak:    lineBreak,
+		channelID:          channelID,
+		pantrySqliteClient: repository.NewPantrySqliteClient(databaseClient, "groceries"),
+		lineBreak:          lineBreak,
 	}
 }
 

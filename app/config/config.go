@@ -1,10 +1,13 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"os"
-	"strings"
 )
 
 var Config = loadConfig()
@@ -18,19 +21,17 @@ type config struct {
 
 func loadConfig() config {
 	configFile := "local"
-	configPath := "./configs"
 	if len(os.Args[1:]) > 0 {
-		if contains([]string{"local", "int", "prod"}, os.Args[1]) {
+		if slices.Contains([]string{"local", "int", "prod"}, os.Args[1]) {
 			configFile = os.Args[1]
-		} else if strings.Contains(os.Args[1], "test") {
+		} else if strings.Contains(os.Args[1], "test") { // TODO: Check input args for unit tests
 			configFile = "test"
-			pwd, _ := os.Getwd()
-			configPath = subStringAfterBefore(pwd, "app") + "/configs"
 		}
 	}
 
+	// TODO: Replace Viper with plain yaml loader
 	viper.SetConfigName(configFile)
-	viper.AddConfigPath(configPath)
+	viper.AddConfigPath(getConfigPath())
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal().Err(err).Msgf("Viper error while trying to read config `%s`", configFile)
 	}
@@ -41,23 +42,13 @@ func loadConfig() config {
 		log.Fatal().Err(err).Msg("Unable to decode config into struct")
 	}
 
-	log.Info().Msgf("Starting service in %s mode", configFile)
 	return config
 }
 
-func contains(values []string, key string) bool {
-	for _, iter := range values {
-		if iter == key {
-			return true
-		}
+func getConfigPath() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not get current directory")
 	}
-	return false
-}
-
-func subStringAfterBefore(input, delimiter string) string {
-	pos := strings.Index(input, delimiter)
-	if pos == -1 {
-		return ""
-	}
-	return input[0:pos]
+	return filepath.Join(wd, "configs")
 }

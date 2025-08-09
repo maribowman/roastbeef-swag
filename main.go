@@ -42,6 +42,7 @@ func initLogger() {
 }
 
 func main() {
+	os.Exit(0)
 	server, bot, err := app.InitServer(databaseClient)
 	log.Info().Msgf("Running server on port %d", config.Config.Server.Port)
 	if err != nil {
