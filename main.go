@@ -3,17 +3,18 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/maribowman/roastbeef-swag/app"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/maribowman/roastbeef-swag/app/repository"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 var databaseClient model.DatabaseClient
@@ -42,7 +43,6 @@ func initLogger() {
 }
 
 func main() {
-	os.Exit(0)
 	server, bot, err := app.InitServer(databaseClient)
 	log.Info().Msgf("Running server on port %d", config.Config.Server.Port)
 	if err != nil {
@@ -54,7 +54,7 @@ func main() {
 		}
 	}()
 
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	databaseClient.CloseDatabaseConnection()

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -42,6 +43,8 @@ func loadConfig() config {
 		log.Fatal().Err(err).Msg("Unable to decode config into struct")
 	}
 
+	loadAndReplaceFromDotEnv(&config)
+
 	return config
 }
 
@@ -51,4 +54,15 @@ func getConfigPath() string {
 		log.Fatal().Err(err).Msg("Could not get current directory")
 	}
 	return filepath.Join(wd, "configs")
+}
+
+func loadAndReplaceFromDotEnv(config *config) {
+	err := godotenv.Load()
+	if err != nil {
+		return
+	}
+
+	log.Info().Msg("Found .env file -> overwriting configs")
+	config.Discord.Token = os.Getenv("BOT_TOKEN")
+	config.Discord.BotID = os.Getenv("BOT_ID")
 }
