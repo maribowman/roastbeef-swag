@@ -1,15 +1,16 @@
 package service
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/maribowman/roastbeef-swag/app/config"
-	"github.com/maribowman/roastbeef-swag/app/model"
-	"github.com/rs/zerolog/log"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/maribowman/roastbeef-swag/app/config"
+	"github.com/maribowman/roastbeef-swag/app/model"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -204,7 +205,7 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 	markdownTable := model.ToMarkdownTable(items, lineBreak, dateFormat)
 
 	if len(markdownTable) <= 2000 { // 2000 is the message length limit
-		if messageID != "" { // update existing message
+		if messageID != "" { // Update existing message
 			editedMessage := discordgo.NewMessageEdit(channelID, messageID)
 			editedMessage.SetContent(markdownTable)
 			if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
@@ -218,7 +219,7 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 				log.Error().Err(err).Msg("Could not send complex message")
 			}
 		}
-	} else { // split table line by line
+	} else { // Split table line by line
 		markdownTableSplit := strings.Split(markdownTable, "\n")
 		tempTable := ""
 
@@ -256,15 +257,17 @@ func CreateMessageButtons() []discordgo.MessageComponent {
 					Emoji: &discordgo.ComponentEmoji{
 						Name: "📝",
 					},
-					Style:    discordgo.SecondaryButton,
 					CustomID: EditButton,
+					Style:    discordgo.SecondaryButton,
+					Label:    "Edit",
 				},
 				discordgo.Button{
 					Emoji: &discordgo.ComponentEmoji{
 						Name: "🔙",
 					},
-					Style:    discordgo.SecondaryButton,
 					CustomID: UndoButton,
+					Style:    discordgo.SecondaryButton,
+					Label:    "Undo",
 				},
 			},
 		},

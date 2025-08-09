@@ -61,13 +61,14 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: EditModal,
-				Title:    "Edit inventory list",
+				Title:    "Edit TK list",
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
 							discordgo.TextInput{
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
+								Label:    "Edit",
 								Value:    model.ToList(handler.inventory),
 							},
 						},

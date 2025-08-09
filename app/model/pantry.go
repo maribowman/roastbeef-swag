@@ -99,8 +99,6 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	writer := bytes.Buffer{}
 	writer.WriteString("```md\n")
 
-	// table := tablewriter.NewWriter(&writer)
-
 	table := tablewriter.NewTable(&writer,
 		tablewriter.WithRenderer(renderer.NewMarkdown(
 			tw.Rendition{Borders: tw.Border{
@@ -119,12 +117,6 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			},
 		}),
 	)
-
-	// table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
-	// table.SetAlignment(tablewriter.ALIGN_LEFT)
-	// table.SetBorder(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	// table.SetCenterSeparator("|")
-	// table.SetAutoMergeCellsByColumnIndex([]int{0})
 
 	table.Header([]string{"#", "ITEM", "QTY", "ADDED"})
 	table.Bulk(data)

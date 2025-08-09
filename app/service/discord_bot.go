@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
@@ -71,10 +72,12 @@ func (bot *DiscordBot) InteractionDispatch(session *discordgo.Session, interacti
 	if handler, ok := bot.handlers[interaction.ChannelID]; ok {
 		switch interaction.Type {
 		case discordgo.InteractionApplicationCommand:
-			// slash commands
+			// Slash commands
 		case discordgo.InteractionMessageComponent:
+			// Button interaction
 			handler.MessageComponentInteractionEvent(session, interaction)
 		case discordgo.InteractionModalSubmit:
+			// Modal update
 			handler.ModalSubmitInteractionEvent(session, interaction)
 		default:
 			log.Error().Msgf("Could not dispatch interaction event with type `%s`", interaction.Type)

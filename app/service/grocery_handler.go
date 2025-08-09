@@ -68,6 +68,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 							discordgo.TextInput{
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
+								Label:    "Edit",
 								Value:    model.ToList(handler.shoppingList),
 							},
 						},
@@ -88,7 +89,12 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
 
-	_ = session.InteractionRespond(interaction.Interaction, response)
+	log.Debug().Msg(response.Data.Content)
+
+	if err := session.InteractionRespond(interaction.Interaction, response); err != nil {
+		log.Error().Err(err).Msg("Failed to return interaction response")
+	}
+
 }
 
 func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
