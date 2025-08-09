@@ -19,5 +19,7 @@ go.work
 .idea
 .vscode
 .DS_Store
+
+.env
 TODOs.md
 *.db
