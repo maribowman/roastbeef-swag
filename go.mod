@@ -5,6 +5,7 @@ go 1.24.6
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/gin-gonic/gin v1.10.1
+	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.30
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/prometheus/client_golang v1.23.0
