@@ -1,9 +1,10 @@
 package model
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToMarkdownTable(t *testing.T) {
@@ -18,7 +19,7 @@ func TestToMarkdownTable(t *testing.T) {
 			},
 			expected: "```md\n" +
 				"| # |       ITEM        | QTY |  ADDED   |\n" +
-				"|---|-------------------|-----|----------|\n" +
+				"├───┼───────────────────┼─────┼──────────┤\n" +
 				"| 1 | 12345 12345 12345 | 1   | 27.12.23 |\n" +
 				"```",
 		},
@@ -28,7 +29,7 @@ func TestToMarkdownTable(t *testing.T) {
 			},
 			expected: "```md\n" +
 				"| # |       ITEM        | QTY |  ADDED   |\n" +
-				"|---|-------------------|-----|----------|\n" +
+				"├───┼───────────────────┼─────┼──────────┤\n" +
 				"| 1 | 12345 12345 12345 | 1   | 27.12.23 |\n" +
 				"|   | 12345 12345       |     |          |\n" +
 				"```",
@@ -39,7 +40,7 @@ func TestToMarkdownTable(t *testing.T) {
 			},
 			expected: "```md\n" +
 				"| # |         ITEM         | QTY |  ADDED   |\n" +
-				"|---|----------------------|-----|----------|\n" +
+				"├───┼──────────────────────┼─────┼──────────┤\n" +
 				"| 1 | 1234512345123451234- | 1   | 27.12.23 |\n" +
 				"|   | 512345               |     |          |\n" +
 				"```",
@@ -50,7 +51,7 @@ func TestToMarkdownTable(t *testing.T) {
 			},
 			expected: "```md\n" +
 				"| # |         ITEM         | QTY |  ADDED   |\n" +
-				"|---|----------------------|-----|----------|\n" +
+				"├───┼──────────────────────┼─────┼──────────┤\n" +
 				"| 1 | 12345 1234512345123- | 1   | 27.12.23 |\n" +
 				"|   | 451234512345         |     |          |\n" +
 				"```",
@@ -77,7 +78,7 @@ func TestFromMarkdownTable(t *testing.T) {
 		"simple conversion": {
 			table: "```md\n" +
 				"| # | ITEM | QTY | ADDED  |\n" +
-				"|---|------|-----|--------|\n" +
+				"|:-:|:----:|:---:|:------:|\n" +
 				"| 1 | test | 3   | 27.12. |\n" +
 				"```",
 			expected: []PantryItem{
@@ -93,7 +94,7 @@ func TestFromMarkdownTable(t *testing.T) {
 		"multi conversion": {
 			table: "```md\n" +
 				"| # |  ITEM  | QTY | ADDED  |\n" +
-				"|---|--------|-----|--------|\n" +
+				"|:-:|:------:|:---:|:------:|\n" +
 				"| 1 | eggs   | 4   | 24.12. |\n" +
 				"| 2 | coffee | 1   | 25.12. |\n" +
 				"| 3 | bacon  | 3   | 26.12. |\n" +
@@ -130,7 +131,7 @@ func TestFromMarkdownTable(t *testing.T) {
 		"multi-line conversion": {
 			table: "```md\n" +
 				"| # |     ITEM     | QTY | ADDED  |\n" +
-				"|---|--------------|-----|--------|\n" +
+				"|:-:|:------------:|:---:|:------:|\n" +
 				"| 1 | eggs         | 4   | 24.12. |\n" +
 				"| 2 | coffee and   | 1   | 25.12. |\n" +
 				"|   | more coffee  |     |        |\n" +
