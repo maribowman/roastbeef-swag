@@ -47,6 +47,8 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			tableItemLine := ""
 			itemSplit := strings.Split(item.Item, " ")
 
+			tempLine := []string{}
+
 			for index, split := range itemSplit {
 				if len(tableItemLine) != 0 {
 					tableItemLine += " "
@@ -54,16 +56,19 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 				if len(split) > linebreak {
 					// Split too long item word
 					charsLeft := linebreak - len(tableItemLine) - 1
-					tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
+					// tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
+					tempLine = append(tempLine, tableItemLine+split[:charsLeft]+"-")
 					tableItemLine = split[charsLeft:]
 					// Split a second time in rare case of a mega long word
 					if len(tableItemLine) > linebreak {
-						tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
+						// tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
+						tempLine = append(tempLine, tableItemLine[:linebreak-1]+"-")
 						tableItemLine = tableItemLine[linebreak-1:]
 					}
 				} else if len(tableItemLine)+len(split) > linebreak {
 					// Create newline before table item line gets too long
-					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					//tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
 					// reset table item line
 					tableItemLine = split
 				} else {
@@ -71,10 +76,13 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 				}
 				// Wrap up last line
 				if index == len(itemSplit)-1 {
-					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					//tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
 					tableItemLine = ""
 				}
 			}
+
+			tableItemLines = append(tableItemLines, strings.Join(tempLine, "\n"))
 		}
 
 		for index, tableItemLine := range tableItemLines {
@@ -137,7 +145,7 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 			continue
 		}
 
-		splitItem := strings.Split(item, "|")
+		splitItem := strings.Split(item, "│")
 		number, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
 		if err != nil {
 			// overwriting last item -> assuming it is a multi-line item because it does not have a number
