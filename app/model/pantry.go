@@ -47,12 +47,15 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			tableItemLine := ""
 			itemSplit := strings.Split(item.Item, " ")
 
+			// Use tempLine to build a multi-line string, which is then appended to tableItemLines
 			tempLine := []string{}
 
 			for index, split := range itemSplit {
+				println(split)
 				if len(tableItemLine) != 0 {
 					tableItemLine += " "
 				}
+
 				if len(split) > linebreak {
 					// Split too long item word
 					charsLeft := linebreak - len(tableItemLine) - 1
@@ -118,10 +121,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 		)),
 		tablewriter.WithConfig(tablewriter.Config{
 			Row: tw.CellConfig{
-				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
-				// Formatting: tw.CellFormatting{
-				// 	AutoWrap: tw.WrapBreak,
-				// },
+				Alignment:    tw.CellAlignment{Global: tw.AlignLeft},
 				ColMaxWidths: tw.CellWidth{Global: linebreak},
 			},
 		}),
