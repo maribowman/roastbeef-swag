@@ -121,8 +121,10 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 		)),
 		tablewriter.WithConfig(tablewriter.Config{
 			Row: tw.CellConfig{
-				Alignment:    tw.CellAlignment{Global: tw.AlignLeft},
-				ColMaxWidths: tw.CellWidth{Global: linebreak},
+				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+				Formatting: tw.CellFormatting{
+					MergeMode: tw.MergeVertical,
+				},
 			},
 		}),
 	)
