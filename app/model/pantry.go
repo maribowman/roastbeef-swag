@@ -40,42 +40,42 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	for _, item := range items {
 		tableItemLines := []string{}
 
-		// if len(item.Item) < linebreak {
-		tableItemLines = append(tableItemLines, item.Item)
-		// } else {
-		// 	// Split item in whitespace separated chunks
-		// 	tableItemLine := ""
-		// 	itemSplit := strings.Split(item.Item, " ")
+		if len(item.Item) < linebreak {
+			tableItemLines = append(tableItemLines, item.Item)
+		} else {
+			// Split item in whitespace separated chunks
+			tableItemLine := ""
+			itemSplit := strings.Split(item.Item, " ")
 
-		// 	for index, split := range itemSplit {
-		// 		if len(tableItemLine) != 0 {
-		// 			tableItemLine += " "
-		// 		}
-		// 		if len(split) > linebreak {
-		// 			// Split too long item word
-		// 			charsLeft := linebreak - len(tableItemLine) - 1
-		// 			tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
-		// 			tableItemLine = split[charsLeft:]
-		// 			// Split a second time in rare case of a mega long word
-		// 			if len(tableItemLine) > linebreak {
-		// 				tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
-		// 				tableItemLine = tableItemLine[linebreak-1:]
-		// 			}
-		// 		} else if len(tableItemLine)+len(split) > linebreak {
-		// 			// Create newline before table item line gets too long
-		// 			tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
-		// 			// reset table item line
-		// 			tableItemLine = split
-		// 		} else {
-		// 			tableItemLine += split
-		// 		}
-		// 		// Wrap up last line
-		// 		if index == len(itemSplit)-1 {
-		// 			tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
-		// 			tableItemLine = ""
-		// 		}
-		// 	}
-		// }
+			for index, split := range itemSplit {
+				if len(tableItemLine) != 0 {
+					tableItemLine += " "
+				}
+				if len(split) > linebreak {
+					// Split too long item word
+					charsLeft := linebreak - len(tableItemLine) - 1
+					tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
+					tableItemLine = split[charsLeft:]
+					// Split a second time in rare case of a mega long word
+					if len(tableItemLine) > linebreak {
+						tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
+						tableItemLine = tableItemLine[linebreak-1:]
+					}
+				} else if len(tableItemLine)+len(split) > linebreak {
+					// Create newline before table item line gets too long
+					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					// reset table item line
+					tableItemLine = split
+				} else {
+					tableItemLine += split
+				}
+				// Wrap up last line
+				if index == len(itemSplit)-1 {
+					tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
+					tableItemLine = ""
+				}
+			}
+		}
 
 		for index, tableItemLine := range tableItemLines {
 			if index == 0 {
@@ -111,9 +111,9 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 		tablewriter.WithConfig(tablewriter.Config{
 			Row: tw.CellConfig{
 				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
-				Formatting: tw.CellFormatting{
-					AutoWrap: tw.WrapBreak,
-				},
+				// Formatting: tw.CellFormatting{
+				// 	AutoWrap: tw.WrapBreak,
+				// },
 				ColMaxWidths: tw.CellWidth{Global: linebreak},
 			},
 		}),
