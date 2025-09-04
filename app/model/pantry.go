@@ -144,7 +144,8 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 		}
 
 		splitItem := strings.Split(item, "│")
-		if len(splitItem) == 0 {
+		if len(splitItem) == 1 {
+			// If item cannot be split, length is 1
 			splitItem = strings.Split(item, "|") // TODO: Temp fix -> remove!
 		}
 

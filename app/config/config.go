@@ -49,11 +49,26 @@ func loadConfig() config {
 }
 
 func getConfigPath() string {
-	wd, err := os.Getwd()
+	return filepath.Join(getProjectRoot(), "configs")
+}
+
+func getProjectRoot() string {
+	currentDir, err := os.Getwd()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not get current directory")
 	}
-	return filepath.Join(wd, "configs")
+
+	for {
+		goModPath := filepath.Join(currentDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			return currentDir
+		}
+		parentDir := filepath.Dir(currentDir)
+		if parentDir == currentDir {
+			log.Fatal().Err(err).Msg("Could not find project root with go.mod file")
+		}
+		currentDir = parentDir
+	}
 }
 
 func loadAndReplaceFromDotEnv(config *config) {
