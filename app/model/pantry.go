@@ -59,27 +59,23 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 				if len(split) > linebreak {
 					// Split too long item word
 					charsLeft := linebreak - len(tableItemLine) - 1
-					// tableItemLines = append(tableItemLines, tableItemLine+split[:charsLeft]+"-")
 					tempLine = append(tempLine, tableItemLine+split[:charsLeft]+"-")
 					tableItemLine = split[charsLeft:]
 					// Split a second time in rare case of a mega long word
 					if len(tableItemLine) > linebreak {
-						// tableItemLines = append(tableItemLines, tableItemLine[:linebreak-1]+"-")
 						tempLine = append(tempLine, tableItemLine[:linebreak-1]+"-")
 						tableItemLine = tableItemLine[linebreak-1:]
 					}
 				} else if len(tableItemLine)+len(split) > linebreak {
 					// Create newline before table item line gets too long
-					//tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
 					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
-					// reset table item line
+					// Reset table item line
 					tableItemLine = split
 				} else {
 					tableItemLine += split
 				}
 				// Wrap up last line
 				if index == len(itemSplit)-1 {
-					//tableItemLines = append(tableItemLines, strings.TrimSpace(tableItemLine))
 					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
 					tableItemLine = ""
 				}
@@ -148,9 +144,13 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 		}
 
 		splitItem := strings.Split(item, "│")
+		if len(splitItem) == 0 {
+			splitItem = strings.Split(item, "|") // TODO: Temp fix -> remove!
+		}
+
 		number, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
 		if err != nil {
-			// overwriting last item -> assuming it is a multi-line item because it does not have a number
+			// Overwriting last item -> assuming it is a multi-line item because it does not have a number
 			lastItem := result[len(result)-1]
 			if strings.HasSuffix(lastItem.Item, "-") {
 				lastItem.Item = strings.TrimSuffix(lastItem.Item, "-") + strings.TrimSpace(splitItem[2])
