@@ -1,6 +1,6 @@
 package config
 
 type LoggingConfig struct {
-	LogLevel     string
-	OutputFormat string
+	LogLevel     string `yaml:"logLevel"`
+	OutputFormat string `yaml:"outputFormat"`
 }

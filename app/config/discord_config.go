@@ -1,13 +1,13 @@
 package config
 
 type DiscordConfig struct {
-	Token    string
-	BotID    string
-	Channels []Channel
+	Token    string    `yaml:"token"`
+	BotID    string    `yaml:"botID"`
+	Channels []Channel `yaml:"channels"`
 }
 
 type Channel struct {
-	Name      string
-	ID        string
-	LineBreak int `default:"100"`
+	Name      string `yaml:"name"`
+	ID        string `yaml:"id"`
+	LineBreak int    `yaml:"lineBreak"`
 }

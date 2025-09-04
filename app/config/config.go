@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -8,16 +9,16 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 var Config = loadConfig()
 
 type config struct {
-	Server   ServerConfig
-	Logging  LoggingConfig
-	Discord  DiscordConfig
-	Database DatabaseConfig
+	Server   ServerConfig   `yaml:"server"`
+	Logging  LoggingConfig  `yaml:"logging"`
+	Discord  DiscordConfig  `yaml:"discord"`
+	Database DatabaseConfig `yaml:"database"`
 }
 
 func loadConfig() config {
@@ -30,21 +31,19 @@ func loadConfig() config {
 		}
 	}
 
-	// TODO: Replace Viper with plain yaml loader
-	viper.SetConfigName(configFile)
-	viper.AddConfigPath(getConfigPath())
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal().Err(err).Msgf("Viper error while trying to read config `%s`", configFile)
-	}
-
+	// TODO: config is not parsed correctly
 	var config config
-	err := viper.Unmarshal(&config)
+	configFilePath := filepath.Join(getConfigPath(), fmt.Sprintf("%s.%s", configFile, "yaml"))
+	yamlConfig, err := os.ReadFile(configFilePath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to decode config into struct")
+		log.Fatal().Err(err).Msgf("Unable to read config from %s", configFilePath)
+	}
+	err = yaml.Unmarshal(yamlConfig, &config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to unmarshal config yaml into Config struct")
 	}
 
 	loadAndReplaceFromDotEnv(&config)
-
 	return config
 }
 

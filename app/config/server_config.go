@@ -1,6 +1,6 @@
 package config
 
 type ServerConfig struct {
-	Port    int
-	Mode    string
+	Port int    `yaml:"port"`
+	Mode string `yaml:"mode"`
 }
