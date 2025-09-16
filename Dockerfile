@@ -1,4 +1,4 @@
-FROM golang:1.24.6-alpine3.22 AS builder
+FROM golang:1.25.1-alpine3.22 AS builder
 LABEL stage=builder
 WORKDIR /src
 COPY . .
