@@ -11,6 +11,7 @@ RUN addgroup -S nonroot && adduser -S nonroot -G nonroot
 USER nonroot
 WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /app/main /app/main
+# TODO: Might be an issue to only copy the binary -> cannot find go.mod in config
 COPY --from=builder --chown=nonroot:nonroot /configs /configs
 VOLUME /data
 EXPOSE 8800
