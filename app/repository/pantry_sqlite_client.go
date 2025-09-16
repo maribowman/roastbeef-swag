@@ -3,9 +3,10 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type PantrySqliteClient struct {
@@ -39,7 +40,7 @@ func (client *PantrySqliteClient) AddItem(item model.PantryItem) (int, error) {
 
 	result, err := stmt.Exec(client.tableName, item.Number, item.Item, item.Amount, item.Date.Unix())
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to insert item [%s] into %s table", item.ToString(), client.tableName)
+		log.Error().Err(err).Msgf("Failed to insert item [%s] into table %s", item.ToString(), client.tableName)
 		return -1, err
 	}
 	id, _ := result.LastInsertId()
@@ -55,7 +56,7 @@ func (client *PantrySqliteClient) UpdateItem(item model.PantryItem) error {
 	defer stmt.Close()
 
 	if _, err := stmt.Exec(client.tableName, item.Number, item.Item, item.Amount, item.ID); err != nil {
-		log.Error().Err(err).Msgf("Failed to update item [%s] in %s table", item.ToString(), client.tableName)
+		log.Error().Err(err).Msgf("Failed to update item [%s] in table %s", item.ToString(), client.tableName)
 		return err
 	}
 	return nil
@@ -70,7 +71,7 @@ func (client *PantrySqliteClient) RemoveItem(id int) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(client.tableName, id); err != nil {
-		log.Error().Err(err).Msgf("Failed to delete item [id: `%d`] in %s table", id, client.tableName)
+		log.Error().Err(err).Msgf("Failed to delete item %d from table %s", id, client.tableName)
 	}
 	return nil
 }
@@ -85,7 +86,7 @@ func (client *PantrySqliteClient) GetItems() ([]model.PantryItem, error) {
 
 	rows, err := stmt.Query(client.tableName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to select all items from %s table", client.tableName)
+		log.Error().Err(err).Msgf("Failed to select all items from table %s", client.tableName)
 		return []model.PantryItem{}, err
 	}
 
