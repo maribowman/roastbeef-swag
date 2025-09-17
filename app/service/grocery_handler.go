@@ -24,15 +24,13 @@ func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, li
 	}
 }
 
-func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session, ready *discordgo.Ready) {
+func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.")
-	if err != nil {
-		log.Error().Err(err).Msg("Error while processing message event")
-		return
+	if err == nil {
+		handler.shoppingList = UpdateItems(items, content)
 	}
-	handler.shoppingList = UpdateItems(items, content)
-	log.Debug().Msg("Initialized grocery handler")
+	return
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
@@ -88,8 +86,6 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 	default:
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
-
-	log.Debug().Msg(response.Data.Content)
 
 	if err := session.InteractionRespond(interaction.Interaction, response); err != nil {
 		log.Error().Err(err).Msg("Failed to return interaction response")

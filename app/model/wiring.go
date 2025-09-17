@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -13,7 +14,7 @@ type DiscordBot interface {
 }
 
 type BotHandler interface {
-	ReadyEvent(*discordgo.Session, *discordgo.Ready)
+	ReadyEvent(*discordgo.Session) error
 	MessageEvent(*discordgo.Session, *discordgo.MessageCreate)
 	MessageComponentInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate)
 	ModalSubmitInteractionEvent(*discordgo.Session, *discordgo.InteractionCreate)

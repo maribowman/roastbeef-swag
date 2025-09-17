@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
@@ -11,7 +13,7 @@ import (
 
 type DiscordBot struct {
 	session  *discordgo.Session
-	handlers map[string]model.BotHandler
+	handlers map[string]model.BotHandler // Maps channel ID to corresponding handler
 }
 
 func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
@@ -30,7 +32,7 @@ func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 			handlers[channel.ID] = NewTkHandler(channel.ID, databaseClient, channel.LineBreak)
 			continue
 		}
-		log.Error().Msgf("Could not map channel `%s` to handler", channel.Name)
+		log.Info().Msgf("Could not map channel `%s` to handler", channel.Name)
 	}
 
 	bot := DiscordBot{
@@ -43,17 +45,57 @@ func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 	bot.session.AddHandler(bot.InteractionDispatch)
 
 	if err = bot.session.Open(); err != nil {
-		log.Fatal().Err(err).Msg("Could not open Discord session")
+		log.Fatal().Err(err).Msg("Could not open session with Discord server")
 	}
+	log.Info().Msg("Session to Discord server established, bot is up!")
 
 	return &bot
 }
 
-func (bot *DiscordBot) Ready(session *discordgo.Session, ready *discordgo.Ready) {
-	for _, handler := range bot.handlers {
-		handler.ReadyEvent(session, ready)
+func (bot *DiscordBot) Ready(session *discordgo.Session, _ *discordgo.Ready) {
+	var waitGroup sync.WaitGroup
+	errorChannel := make(chan error, len(bot.handlers))
+
+	for channelID, handler := range bot.handlers {
+		waitGroup.Add(1)
+
+		go func(channelID string, handler model.BotHandler) {
+			defer waitGroup.Done()
+
+			timeout := time.After(5 * time.Second)
+			done := make(chan struct{})
+
+			go func() {
+
+				if err := handler.ReadyEvent(session); err != nil {
+					errorChannel <- fmt.Errorf("failed to initialize handler on channel %s: %w", channelID, err)
+				}
+				close(done)
+			}()
+
+			select {
+			case <-timeout:
+				errorChannel <- fmt.Errorf("handler initialization on channel  %s timed out", channelID)
+			case <-done:
+				log.Info().Msgf("Initialized handler on channel %s", channelID)
+			}
+		}(channelID, handler)
 	}
-	log.Info().Msg("Bot is up!")
+
+	waitGroup.Wait()
+	close(errorChannel)
+
+	var hasErrors bool
+	for err := range errorChannel {
+		hasErrors = true
+		log.Error().Err(err).Msg("Handler initialization failed")
+	}
+
+	if hasErrors {
+		log.Fatal().Msg("Failed to initialize all handlers -> crashing bot!")
+	}
+
+	log.Info().Msg("All handlers initialized, bot is ready!")
 }
 
 func (bot *DiscordBot) MessageDispatch(session *discordgo.Session, message *discordgo.MessageCreate) {
