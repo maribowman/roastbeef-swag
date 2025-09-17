@@ -61,7 +61,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 					charsLeft := linebreak - len(tableItemLine) - 1
 					tempLine = append(tempLine, tableItemLine+split[:charsLeft]+"-")
 					tableItemLine = split[charsLeft:]
-					// Split a second time in rare case of a mega long word
+					// Split a second time in rare case of a really long word
 					if len(tableItemLine) > linebreak {
 						tempLine = append(tempLine, tableItemLine[:linebreak-1]+"-")
 						tableItemLine = tableItemLine[linebreak-1:]
@@ -84,6 +84,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			tableItemLines = append(tableItemLines, strings.Join(tempLine, "\n"))
 		}
 
+		// TODO: With the new layout, this is a bug!
 		for index, tableItemLine := range tableItemLines {
 			if index == 0 {
 				data = append(data, []string{
@@ -107,17 +108,22 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	writer.WriteString("```md\n")
 
 	table := tablewriter.NewTable(&writer,
-		tablewriter.WithRenderer(renderer.NewBlueprint(
-			tw.Rendition{Borders: tw.Border{
-				Left:   tw.On,
-				Top:    tw.Off,
-				Right:  tw.On,
-				Bottom: tw.Off,
-			}},
+		tablewriter.WithRenderer(renderer.NewMarkdown(
+			tw.Rendition{
+				Borders: tw.Border{
+					Left:   tw.On,
+					Top:    tw.Off,
+					Right:  tw.On,
+					Bottom: tw.Off,
+				},
+			},
 		)),
 		tablewriter.WithConfig(tablewriter.Config{
+			Header: tw.CellConfig{
+				Alignment: tw.CellAlignment{Global: tw.AlignNone},
+			},
 			Row: tw.CellConfig{
-				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
+				Alignment: tw.CellAlignment{Global: tw.AlignNone},
 				Formatting: tw.CellFormatting{
 					MergeMode: tw.MergeVertical,
 				},
@@ -143,11 +149,7 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 			continue
 		}
 
-		splitItem := strings.Split(item, "│")
-		if len(splitItem) == 1 {
-			// If item cannot be split, length is 1
-			splitItem = strings.Split(item, "|") // TODO: Temp fix -> remove!
-		}
+		splitItem := strings.Split(item, "|")
 
 		number, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
 		if err != nil {
@@ -161,7 +163,13 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 			result[len(result)-1] = lastItem
 			continue
 		}
-		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
+
+		// TODO: Remove this temp fix to old implementation
+		amount := 1
+		if strings.TrimSpace(splitItem[3]) != "" || strings.TrimSpace(splitItem[3]) != "0" {
+			amount, _ = strconv.Atoi(strings.TrimSpace(splitItem[3]))
+		}
+
 		date, _ := time.Parse(dateFormat, strings.TrimSpace(splitItem[4]))
 		if date.Year() <= 0 {
 			date = time.Date(time.Now().Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
