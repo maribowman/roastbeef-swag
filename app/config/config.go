@@ -26,12 +26,11 @@ func loadConfig() config {
 	if len(os.Args[1:]) > 0 {
 		if slices.Contains([]string{"local", "int", "prod"}, os.Args[1]) {
 			configFile = os.Args[1]
-		} else if strings.Contains(os.Args[1], "test") { // TODO: Check input args for unit tests
+		} else if strings.Contains(os.Args[1], "test") {
 			configFile = "test"
 		}
 	}
 
-	// TODO: config is not parsed correctly
 	var config config
 	configFilePath := filepath.Join(getConfigPath(), fmt.Sprintf("%s.%s", configFile, "yaml"))
 	yamlConfig, err := os.ReadFile(configFilePath)
@@ -64,15 +63,16 @@ func getProjectRoot() string {
 		}
 		parentDir := filepath.Dir(currentDir)
 		if parentDir == currentDir {
-			log.Fatal().Err(err).Msg("Could not find project root with go.mod file")
+			log.Info().Msg("Could not find project root with go.mod file, returning `/`")
+			return parentDir
 		}
 		currentDir = parentDir
 	}
 }
 
 func loadAndReplaceFromDotEnv(config *config) {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
+		log.Info().Msg("No .env file found, skipping overwrite")
 		return
 	}
 
