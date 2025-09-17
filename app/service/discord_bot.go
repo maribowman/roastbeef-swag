@@ -47,7 +47,7 @@ func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 	if err = bot.session.Open(); err != nil {
 		log.Fatal().Err(err).Msg("Could not open session with Discord server")
 	}
-	log.Info().Msg("Session to Discord server established, bot is up!")
+	log.Info().Msg("Session to Discord server established")
 
 	return &bot
 }
@@ -63,14 +63,13 @@ func (bot *DiscordBot) Ready(session *discordgo.Session, _ *discordgo.Ready) {
 			defer waitGroup.Done()
 
 			timeout := time.After(5 * time.Second)
-			done := make(chan struct{})
+			done := make(chan bool, 1)
 
 			go func() {
-
 				if err := handler.ReadyEvent(session); err != nil {
 					errorChannel <- fmt.Errorf("failed to initialize handler on channel %s: %w", channelID, err)
 				}
-				close(done)
+				done <- true
 			}()
 
 			select {
@@ -95,7 +94,7 @@ func (bot *DiscordBot) Ready(session *discordgo.Session, _ *discordgo.Ready) {
 		log.Fatal().Msg("Failed to initialize all handlers -> crashing bot!")
 	}
 
-	log.Info().Msg("All handlers initialized, bot is ready!")
+	log.Info().Msg("All handlers initialized, bot is up and running!")
 }
 
 func (bot *DiscordBot) MessageDispatch(session *discordgo.Session, message *discordgo.MessageCreate) {

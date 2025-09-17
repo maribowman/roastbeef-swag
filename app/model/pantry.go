@@ -84,7 +84,6 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			tableItemLines = append(tableItemLines, strings.Join(tempLine, "\n"))
 		}
 
-		// TODO: With the new layout, this is a bug!
 		for index, tableItemLine := range tableItemLines {
 			if index == 0 {
 				data = append(data, []string{
@@ -95,10 +94,10 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 				)
 			} else {
 				data = append(data, []string{
-					strconv.Itoa(item.Number),
+					" ",
 					tableItemLine,
-					"",
-					""},
+					" ",
+					" "},
 				)
 			}
 		}
@@ -124,9 +123,6 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 			},
 			Row: tw.CellConfig{
 				Alignment: tw.CellAlignment{Global: tw.AlignNone},
-				Formatting: tw.CellFormatting{
-					MergeMode: tw.MergeVertical,
-				},
 			},
 		}),
 	)
@@ -164,12 +160,7 @@ func FromMarkdownTable(table string, dateFormat string) []PantryItem {
 			continue
 		}
 
-		// TODO: Remove this temp fix to old implementation
-		amount := 1
-		if strings.TrimSpace(splitItem[3]) != "" || strings.TrimSpace(splitItem[3]) != "0" {
-			amount, _ = strconv.Atoi(strings.TrimSpace(splitItem[3]))
-		}
-
+		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
 		date, _ := time.Parse(dateFormat, strings.TrimSpace(splitItem[4]))
 		if date.Year() <= 0 {
 			date = time.Date(time.Now().Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)

@@ -56,7 +56,7 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat st
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
 				items = model.FromMarkdownTable(msg.Content, dateFormat)
-				// TODO read from file if present
+				// TODO: Use sqlite and drop this
 				continue
 			}
 		} else {
