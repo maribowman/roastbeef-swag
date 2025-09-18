@@ -11,8 +11,8 @@ type TkHandler struct {
 	channelID          string
 	pantrySqliteClient model.PantryClient
 	lineBreak          int
-	inventory          []model.PantryItem
-	previousInventory  []model.PantryItem // use to undo actions
+	inventory          []model.PantryItem // TODO: Remove this and always get inventory from sqlite
+	previousInventory  []model.PantryItem // Used to undo actions
 }
 
 func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
@@ -27,9 +27,20 @@ func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBre
 func (handler *TkHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.06")
-	if err == nil {
-		handler.inventory = UpdateItems(items, content)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to pre-process message events for TK handler")
+		return
 	}
+
+	channelItems := UpdateItems(items, content)
+	sqliteItems := handler.pantrySqliteClient.GetItems()
+	if len(sqliteItems) == 0 {
+		for _, item := range channelItems {
+			handler.pantrySqliteClient.AddItem(item)
+		}
+	}
+
+	handler.inventory = handler.pantrySqliteClient.GetItems()
 	return
 }
 

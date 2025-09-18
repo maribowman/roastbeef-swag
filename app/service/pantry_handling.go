@@ -30,17 +30,16 @@ var (
 	trailingQuantity  = regexp.MustCompile(`\s(\d+)$`)
 )
 
-func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat string) (
-	items []model.PantryItem,
-	lastBotMessageID string,
-	content string,
-	removableMessageIDs []string,
-	err error,
-) {
-	channelMessages, err_ := session.ChannelMessages(channelID, 100, "", "", "")
-	if err_ != nil {
-		err = err_
-		return
+func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat string) ([]model.PantryItem, string, string, []string, error) {
+	var items []model.PantryItem
+	var lastBotMessageID string
+	var content string
+	var removableMessageIDs []string
+
+	channelMessages, err := session.ChannelMessages(channelID, 100, "", "", "")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get messages from Discord channel")
+		return nil, "", "", nil, err
 	}
 
 	var lastBotMessage *discordgo.Message
@@ -64,7 +63,7 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID, dateFormat st
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
-	return
+	return items, lastBotMessageID, content, removableMessageIDs, err
 }
 
 func UpdateItemsFromList(items []model.PantryItem, updatedList string) []model.PantryItem {
