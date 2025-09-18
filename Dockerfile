@@ -3,15 +3,15 @@ LABEL stage=builder
 WORKDIR /src
 COPY . .
 RUN go test ./... -cover -v
-RUN go build -ldflags="-s -w" -o /app/main .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /main .
 
 FROM alpine:3.22
-RUN apk update && apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates
 RUN addgroup -S nonroot && adduser -S nonroot -G nonroot
 USER nonroot
-WORKDIR /app
-COPY --from=builder --chown=nonroot:nonroot /app/main /app/main
+WORKDIR /
+COPY --from=builder --chown=nonroot:nonroot /main /main
 COPY --chown=nonroot:nonroot /configs /configs
 VOLUME /data
 EXPOSE 8800
-ENTRYPOINT [ "/app/main" ]
+ENTRYPOINT [ "/main" ]
