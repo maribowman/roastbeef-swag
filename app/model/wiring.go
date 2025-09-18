@@ -27,7 +27,7 @@ type DatabaseClient interface {
 
 type PantryClient interface {
 	AddItem(PantryItem) (int, error)
-	UpdateItem(PantryItem) error
-	RemoveItem(int) error
-	GetItems() ([]PantryItem, error)
+	UpdateItem(PantryItem)
+	RemoveItem(int)
+	GetItems() []PantryItem
 }
