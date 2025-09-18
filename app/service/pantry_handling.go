@@ -71,8 +71,7 @@ func UpdateItemsFromList(items []model.PantryItem, updatedList string) []model.P
 	var updatedItems []model.PantryItem
 	var newItems []string
 
-	updates := strings.Split(updatedList, "\n")
-	for _, update := range updates {
+	for update := range strings.Lines(updatedList) {
 		if strings.TrimSpace(update) == "" {
 			continue
 		}
@@ -105,16 +104,23 @@ func UpdateItemsFromList(items []model.PantryItem, updatedList string) []model.P
 }
 
 func UpdateItems(items []model.PantryItem, content string) []model.PantryItem {
-	for _, line := range strings.Split(content, "\n") {
+	timezone, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		log.Error().Err(err).Msg("Could not load timezone Europe/Berlin")
+	}
+
+	for line := range strings.Lines(content) {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 
 		if removeRegex.MatchString(line) {
+			// TODO: Remove items from sqlite
 			items = remove(items, line)
 		} else {
-			items = add(items, line, time.Now().Truncate(time.Minute))
+			// TODO: Add items to sqlite
+			items = add(items, line, time.Now().In(timezone).Truncate(time.Minute))
 		}
 	}
 	return items
@@ -140,7 +146,7 @@ func remove(items []model.PantryItem, line string) []model.PantryItem {
 	// add single removable numbers
 	var numbers []int
 	if captureGroups[0] != captureGroups[2] {
-		for _, value := range strings.Split(captureGroups[0], " ") {
+		for value := range strings.SplitSeq(captureGroups[0], " ") {
 			if number, err := strconv.Atoi(value); err == nil {
 				numbers = append(numbers, number)
 			}
@@ -220,10 +226,9 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 			}
 		}
 	} else { // Split table line by line
-		markdownTableSplit := strings.Split(markdownTable, "\n")
 		tempTable := ""
 
-		for _, line := range markdownTableSplit {
+		for line := range strings.Lines(markdownTable) {
 			if len(tempTable)+len(line) <= 1980 {
 				tempTable += line + "\n"
 				continue
