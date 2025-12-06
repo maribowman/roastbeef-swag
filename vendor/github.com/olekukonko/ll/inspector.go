@@ -79,7 +79,7 @@ func (o *Inspector) Log(skip int, values ...interface{}) {
 		}
 
 		// Construct log message with file, line, and JSON data
-		msg := fmt.Sprintf("[%s:%d] DUMP: %s", shortFile, line, string(jsonData))
+		msg := fmt.Sprintf("[%s:%d] INSPECT: %s", shortFile, line, string(jsonData))
 		o.logger.log(lx.LevelInfo, lx.ClassText, msg, nil, false)
 	}
 }
@@ -163,7 +163,7 @@ func (o *Inspector) structToMap(val reflect.Value) map[string]interface{} {
 				case reflect.Bool:
 					result[fieldName] = *(*bool)(ptr)
 				default:
-					result[fieldName] = fmt.Sprintf("<unexported %s>", field.Type().String())
+					result[fieldName] = fmt.Sprintf("*unexported %s*", field.Type().String())
 				}
 			}
 		}
