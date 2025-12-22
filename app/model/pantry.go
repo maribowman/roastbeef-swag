@@ -14,8 +14,7 @@ import (
 
 type PantryItem struct {
 	ID     int
-	Number int
-	Item   string
+	Name   string
 	Amount int
 	Date   time.Time
 }
@@ -26,79 +25,89 @@ func ToList(items []PantryItem) string {
 		if index != 0 {
 			shoppingList += "\n"
 		}
-		shoppingList += fmt.Sprintf("[%d] %d %s", index+1, item.Amount, item.Item)
+		shoppingList += fmt.Sprintf("[%d] %d %s", index+1, item.Amount, item.Name)
 	}
 	return shoppingList
 }
 
 func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) string {
 	var data [][]string
-	for _, item := range items {
-		tableItemLines := []string{}
+	for index, item := range items {
+		data = append(data, processItemMarkdownLayout(index+1, item, linebreak, dateFormat)...)
+	}
+	return writeMarkdownTable(data)
+}
 
-		if len(item.Item) < linebreak {
-			tableItemLines = append(tableItemLines, item.Item)
-		} else {
-			// Split item in whitespace separated chunks
-			tableItemLine := ""
-			itemSplit := strings.Split(item.Item, " ")
-
-			// Use tempLine to build a multi-line string, which is then appended to tableItemLines
-			tempLine := []string{}
-
-			for index, split := range itemSplit {
-				println(split)
-				if len(tableItemLine) != 0 {
-					tableItemLine += " "
-				}
-
-				if len(split) > linebreak {
-					// Split too long item word
-					charsLeft := linebreak - len(tableItemLine) - 1
-					tempLine = append(tempLine, tableItemLine+split[:charsLeft]+"-")
-					tableItemLine = split[charsLeft:]
-					// Split a second time in rare case of a really long word
-					if len(tableItemLine) > linebreak {
-						tempLine = append(tempLine, tableItemLine[:linebreak-1]+"-")
-						tableItemLine = tableItemLine[linebreak-1:]
-					}
-				} else if len(tableItemLine)+len(split) > linebreak {
-					// Create newline before table item line gets too long
-					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
-					// Reset table item line
-					tableItemLine = split
-				} else {
-					tableItemLine += split
-				}
-				// Wrap up last line
-				if index == len(itemSplit)-1 {
-					tempLine = append(tempLine, strings.TrimSpace(tableItemLine))
-					tableItemLine = ""
-				}
-			}
-
-			tableItemLines = append(tableItemLines, strings.Join(tempLine, "\n"))
-		}
-
-		for index, tableItemLine := range tableItemLines {
-			if index == 0 {
-				data = append(data, []string{
-					strconv.Itoa(item.Number),
-					tableItemLine,
-					strconv.Itoa(item.Amount),
-					item.Date.Format(dateFormat)},
-				)
-			} else {
-				data = append(data, []string{
-					" ",
-					tableItemLine,
-					" ",
-					" "},
-				)
-			}
+func processItemMarkdownLayout(index int, item PantryItem, linebreak int, dateFormat string) [][]string {
+	if len(item.Name) <= linebreak {
+		return [][]string{{
+			strconv.Itoa(index),
+			item.Name,
+			strconv.Itoa(item.Amount),
+			item.Date.Format(dateFormat),
+		},
 		}
 	}
 
+	// Split item name in whitespace separated chunks
+	itemNameSplit := strings.Split(item.Name, " ")
+	nameLine := ""
+	nameMultiLine := []string{}
+
+	for idx, split := range itemNameSplit {
+		if len(nameLine) > 0 {
+			// Add whitespace separator to simply append stuff
+			nameLine += " "
+		}
+
+		if len(split) > linebreak {
+			// Split too long item word
+			charsLeft := linebreak - len(nameLine) - 1
+			nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s%s-", nameLine, split[:charsLeft]))
+			nameLine = split[charsLeft:]
+			// Split a second time in case of a really long word (covers 99.9%)
+			if len(nameLine) > linebreak {
+				nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s-", nameLine[:linebreak-1]))
+				nameLine = nameLine[linebreak-1:]
+			}
+		} else if len(nameLine)+len(split) > linebreak {
+			// Create newline before name line gets too long
+			nameMultiLine = append(nameMultiLine, strings.TrimSpace(nameLine))
+			// Assign leftover split to item line
+			nameLine = split
+		} else {
+			nameLine += split
+		}
+
+		// Wrap up last line
+		if idx == len(itemNameSplit)-1 {
+			nameMultiLine = append(nameMultiLine, strings.TrimSpace(nameLine))
+		}
+	}
+
+	var result [][]string
+	for idx, line := range nameMultiLine {
+		if idx == 0 {
+			result = append(result, []string{
+				strconv.Itoa(index),
+				line,
+				strconv.Itoa(item.Amount),
+				item.Date.Format(dateFormat),
+			})
+			continue
+		}
+
+		result = append(result, []string{
+			" ",
+			line,
+			" ",
+			" ",
+		})
+	}
+	return result
+}
+
+func writeMarkdownTable(data [][]string) string {
 	writer := bytes.Buffer{}
 	writer.WriteString("```md\n")
 
@@ -130,44 +139,4 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 	writer.WriteString("```")
 
 	return writer.String()
-}
-
-func FromMarkdownTable(table string, dateFormat string) []PantryItem {
-	var result []PantryItem
-	splitTable := strings.Split(table, "\n")
-
-	for index, item := range splitTable {
-		if index <= 2 || index == len(splitTable)-1 {
-			continue
-		}
-
-		splitItem := strings.Split(item, "|")
-
-		number, err := strconv.Atoi(strings.TrimSpace(splitItem[1]))
-		if err != nil {
-			// Overwriting last item -> assuming it is a multi-line item because it does not have a number
-			lastItem := result[len(result)-1]
-			if strings.HasSuffix(lastItem.Item, "-") {
-				lastItem.Item = strings.TrimSuffix(lastItem.Item, "-") + strings.TrimSpace(splitItem[2])
-			} else {
-				lastItem.Item += " " + strings.TrimSpace(splitItem[2])
-			}
-			result[len(result)-1] = lastItem
-			continue
-		}
-
-		amount, _ := strconv.Atoi(strings.TrimSpace(splitItem[3]))
-		date, _ := time.Parse(dateFormat, strings.TrimSpace(splitItem[4]))
-		if date.Year() <= 0 {
-			date = time.Date(time.Now().Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
-		}
-
-		result = append(result, PantryItem{
-			Number: number,
-			Item:   strings.TrimSpace(splitItem[2]),
-			Amount: amount,
-			Date:   date,
-		})
-	}
-	return result
 }

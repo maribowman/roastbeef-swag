@@ -15,7 +15,7 @@ func TestToMarkdownTable(t *testing.T) {
 	}{
 		"no conversion": {
 			items: []PantryItem{
-				{0, 1, "12345 12345 12345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+				{0, "12345 12345 12345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
 			},
 			expected: "```md\n" +
 				"| # |       ITEM        | QTY |  ADDED   |\n" +
@@ -25,7 +25,7 @@ func TestToMarkdownTable(t *testing.T) {
 		},
 		"simple conversion": {
 			items: []PantryItem{
-				{0, 1, "12345 12345 12345 12345 12345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+				{0, "12345 12345 12345 12345 12345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
 			},
 			expected: "```md\n" +
 				"| # |       ITEM        | QTY |  ADDED   |\n" +
@@ -34,9 +34,9 @@ func TestToMarkdownTable(t *testing.T) {
 				"|   | 12345 12345       |     |          |\n" +
 				"```",
 		},
-		"single too large item": {
+		"too large name with single word split": {
 			items: []PantryItem{
-				{0, 1, "1234512345123451234512345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+				{0, "1234512345123451234512345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
 			},
 			expected: "```md\n" +
 				"| # |         ITEM         | QTY |  ADDED   |\n" +
@@ -45,9 +45,21 @@ func TestToMarkdownTable(t *testing.T) {
 				"|   | 512345               |     |          |\n" +
 				"```",
 		},
-		"too large item": {
+		"too large name with double word split": {
 			items: []PantryItem{
-				{0, 1, "12345 1234512345123451234512345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+				{0, "1234512345123451234512345123451234512345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
+			},
+			expected: "```md\n" +
+				"| # |         ITEM         | QTY |  ADDED   |\n" +
+				"|---|----------------------|-----|----------|\n" +
+				"| 1 | 1234512345123451234- | 1   | 27.12.23 |\n" +
+				"|   | 5123451234512345123- |     |          |\n" +
+				"|   | 45                   |     |          |\n" +
+				"```",
+		},
+		"too large name with whitespace and word split": {
+			items: []PantryItem{
+				{0, "12345 1234512345123451234512345", 1, time.Date(2023, 12, 27, 0, 0, 0, 0, time.Local)},
 			},
 			expected: "```md\n" +
 				"| # |         ITEM         | QTY |  ADDED   |\n" +
@@ -62,102 +74,6 @@ func TestToMarkdownTable(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// when
 			actual := ToMarkdownTable(test.items, 20, "02.01.06")
-
-			// then
-			assert.EqualValues(t, test.expected, actual)
-		})
-	}
-}
-
-func TestFromMarkdownTable(t *testing.T) {
-	// given
-	tests := map[string]struct {
-		table    string
-		expected []PantryItem
-	}{
-		"simple conversion": {
-			table: "```md\n" +
-				"| # | ITEM | QTY | ADDED  |\n" +
-				"|---|------|-----|--------|\n" +
-				"| 1 | test | 3   | 27.12. |\n" +
-				"```",
-			expected: []PantryItem{
-				{
-					ID:     0,
-					Number: 1,
-					Item:   "test",
-					Amount: 3,
-					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
-			},
-		},
-		"multi conversion": {
-			table: "```md\n" +
-				"| # |  ITEM  | QTY | ADDED  |\n" +
-				"|---|--------|-----|--------|\n" +
-				"| 1 | eggs   | 4   | 24.12. |\n" +
-				"| 2 | coffee | 1   | 25.12. |\n" +
-				"| 3 | bacon  | 3   | 26.12. |\n" +
-				"| 4 | milk   | 1   | 27.12. |\n" +
-				"```",
-			expected: []PantryItem{
-				{
-					ID:     0,
-					Number: 1,
-					Item:   "eggs",
-					Amount: 4,
-					Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
-				}, {
-					ID:     0,
-					Number: 2,
-					Item:   "coffee",
-					Amount: 1,
-					Date:   time.Date(time.Now().Year(), 12, 25, 0, 0, 0, 0, time.Local),
-				}, {
-					ID:     0,
-					Number: 3,
-					Item:   "bacon",
-					Amount: 3,
-					Date:   time.Date(time.Now().Year(), 12, 26, 0, 0, 0, 0, time.Local),
-				}, {
-					ID:     0,
-					Number: 4,
-					Item:   "milk",
-					Amount: 1,
-					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
-			},
-		},
-		"multi-line conversion": {
-			table: "```md\n" +
-				"| # |     ITEM     | QTY | ADDED  |\n" +
-				"|---|--------------|-----|--------|\n" +
-				"| 1 | eggs         | 4   | 24.12. |\n" +
-				"| 2 | coffee and   | 1   | 25.12. |\n" +
-				"|   | more coffee  |     |        |\n" +
-				"```",
-			expected: []PantryItem{
-				{
-					ID:     0,
-					Number: 1,
-					Item:   "eggs",
-					Amount: 4,
-					Date:   time.Date(time.Now().Year(), 12, 24, 0, 0, 0, 0, time.Local),
-				}, {
-					ID:     0,
-					Number: 2,
-					Item:   "coffee and more coffee",
-					Amount: 1,
-					Date:   time.Date(time.Now().Year(), 12, 25, 0, 0, 0, 0, time.Local),
-				},
-			},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			// when
-			actual := FromMarkdownTable(test.table, "02.01.")
 
 			// then
 			assert.EqualValues(t, test.expected, actual)
