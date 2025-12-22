@@ -1,11 +1,11 @@
-FROM golang:1.25.1-alpine3.22 AS builder
+FROM golang:1.25.5-alpine3.23 AS builder
 LABEL stage=builder
 WORKDIR /src
 COPY . .
 RUN go test ./... -cover -v
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /main .
 
-FROM alpine:3.22
+FROM alpine:3.23
 RUN apk --no-cache add ca-certificates
 RUN addgroup -S nonroot && adduser -S nonroot -G nonroot
 USER nonroot
