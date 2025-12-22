@@ -1,0 +1,49 @@
+version: "3"
+
+dotenv: [".env"]
+silent: true
+
+vars:
+  SERVICE: "roastbeef-swag"
+  NAME: "ghcr.io/maribowman/{{.SERVICE}}"
+  GIT_BRANCH:
+    sh: git rev-parse --abbrev-ref HEAD
+  GIT_HASH:
+    sh: git rev-parse --short HEAD
+  TAG: "{{.GIT_BRANCH}}-{{.GIT_HASH}}"
+  IMAGE: "{{.NAME}}:{{.TAG}}"
+  STAGE: "local"
+  DATA_VOLUME:
+    sh: pwd
+
+tasks:
+  build:
+    desc: "Build Docker image"
+    cmds:
+      - docker build -q -t "{{.IMAGE}}" -t "{{.NAME}}:latest" .
+      - docker image prune -f --filter label=stage=builder > /dev/null
+
+  push:
+    desc: "Push Docker image to remote registry"
+    deps:
+      - build
+    cmds:
+      - docker push "{{.IMAGE}}"
+      - docker push "{{.NAME}}:latest"
+
+  deploy:
+    desc: "Deploy service on Synology NAS"
+    deps:
+      - push
+    cmds:
+      - echo "Not yet implemented!"
+
+  run:
+    desc: "Run current state as Docker container locally"
+    deps:
+      - build
+    cmd: docker run -d --rm --name {{.SERVICE}} {{.IMAGE}}
+
+  test:
+    desc: "Test task"
+    cmd: echo "{{.TAG}}"
