@@ -8,57 +8,51 @@ import (
 )
 
 type TkHandler struct {
-	channelID          string
-	pantrySqliteClient model.PantryClient
-	lineBreak          int
-	inventory          []model.PantryItem // TODO: Remove this and always get inventory from sqlite
-	previousInventory  []model.PantryItem // Used to undo actions
+	channelID    string
+	pantryClient model.PantryClient
+	lineBreak    int
+	dateFormat   string
 }
 
 func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
-	log.Debug().Msg("Registering tk handler")
+	log.Debug().Msg("Registering TK handler")
 	return &TkHandler{
-		channelID:          channelID,
-		pantrySqliteClient: repository.NewPantrySqliteClient(databaseClient, "tk"),
-		lineBreak:          lineBreak,
+		channelID:    channelID,
+		pantryClient: repository.NewSqlitePantryClient(databaseClient, "tk"),
+		lineBreak:    lineBreak,
+		dateFormat:   "02.01.06",
 	}
 }
 
-func (handler *TkHandler) ReadyEvent(session *discordgo.Session) (err error) {
+func (handler *TkHandler) ReadyEvent(session *discordgo.Session) error {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.06")
+	_, userInput, _, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to pre-process message events for TK handler")
-		return
+		return err
 	}
 
-	channelItems := UpdateItems(items, content)
-	sqliteItems := handler.pantrySqliteClient.GetItems()
-	if len(sqliteItems) == 0 {
-		for _, item := range channelItems {
-			handler.pantrySqliteClient.AddItem(item)
-		}
-	}
-
-	handler.inventory = handler.pantrySqliteClient.GetItems()
-	return
+	UpdateItems(userInput, handler.pantryClient)
+	return nil
 }
 
 func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, "02.01.06")
+	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
 
-	handler.previousInventory = handler.inventory
-	handler.inventory = UpdateItems(items, content)
+	// TODO: Remove this test log
+	log.Info().Msgf("LastBotMessageID: %s", lastBotMessageID)
+
+	UpdateItems(handler.pantryClient, userInput)
 
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.inventory, session, handler.channelID, lastBotMessageID, handler.lineBreak, "02.01.06")
+	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak)
 }
 
 func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -78,7 +72,7 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
 								Label:    "Edit",
-								Value:    model.ToList(handler.inventory),
+								Value:    model.ToList(handler.pantryClient.GetItems()),
 							},
 						},
 					},
@@ -86,11 +80,11 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 			},
 		}
 	case UndoButton:
-		handler.inventory = handler.previousInventory
+		handler.UseLatestSnapshot() // TODO: Implement snapshots
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, handler.lineBreak, "02.01.06"),
+				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -106,15 +100,14 @@ func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		handler.previousInventory = handler.inventory
-		handler.inventory = UpdateItemsFromList(
-			handler.inventory,
+		UpdateItemsFromModal(
+			handler.pantryClient,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.inventory, handler.lineBreak, "02.01.06"),
+				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}

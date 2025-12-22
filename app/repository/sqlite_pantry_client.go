@@ -9,13 +9,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type PantrySqliteClient struct {
+type SqlitePantryClient struct {
 	sqlite    *sql.DB
 	tableName string
 }
 
-func NewPantrySqliteClient(databaseClient model.DatabaseClient, tableName string) model.PantryClient {
-	client := &PantrySqliteClient{
+func NewSqlitePantryClient(databaseClient model.DatabaseClient, tableName string) model.PantryClient {
+	client := &SqlitePantryClient{
 		sqlite:    databaseClient.GetDatabaseConnection(),
 		tableName: tableName,
 	}
@@ -23,14 +23,14 @@ func NewPantrySqliteClient(databaseClient model.DatabaseClient, tableName string
 	return client
 }
 
-func (client *PantrySqliteClient) init() {
+func (client *SqlitePantryClient) init() {
 	_, err := client.sqlite.Exec(fmt.Sprintf("create table if not exists %s(id integer primary key autoincrement, name text not null, amount int not null, date int not null);", client.tableName))
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not create pantry database table %s", client.tableName)
 	}
 }
 
-func (client *PantrySqliteClient) AddItem(item model.PantryItem) (int, error) {
+func (client *SqlitePantryClient) AddItem(item model.PantryItem) (int, error) {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("insert into %s (name, amount, date) values (?, ?, ?);", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare insert statement on table %s", client.tableName)
@@ -47,7 +47,7 @@ func (client *PantrySqliteClient) AddItem(item model.PantryItem) (int, error) {
 	return int(id), nil
 }
 
-func (client *PantrySqliteClient) UpdateItem(item model.PantryItem) {
+func (client *SqlitePantryClient) UpdateItem(item model.PantryItem) {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, amount=? where index=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare update statement on table %s", client.tableName)
@@ -59,7 +59,7 @@ func (client *PantrySqliteClient) UpdateItem(item model.PantryItem) {
 	}
 }
 
-func (client *PantrySqliteClient) RemoveItem(id int) {
+func (client *SqlitePantryClient) RemoveItem(id int) {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("delete from %s where id=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare delete statement on table %s", client.tableName)
@@ -71,7 +71,7 @@ func (client *PantrySqliteClient) RemoveItem(id int) {
 	}
 }
 
-func (client *PantrySqliteClient) GetItems() []model.PantryItem {
+func (client *SqlitePantryClient) GetItems() []model.PantryItem {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("select * from %s;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare select all statement on table %s", client.tableName)

@@ -8,25 +8,25 @@ import (
 )
 
 type GroceryHandler struct {
-	channelID            string
-	pantrySqliteClient   model.PantryClient
-	lineBreak            int
-	shoppingList         []model.PantryItem
-	previousShoppingList []model.PantryItem
+	channelID          string
+	sqlitepantryClient model.PantryClient
+	lineBreak          int
+	dateFormat         string
 }
 
 func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
 		channelID:          channelID,
-		pantrySqliteClient: repository.NewPantrySqliteClient(databaseClient, "groceries"),
+		sqlitePantryClient: repository.NewSqlitePantryClient(databaseClient, "groceries"),
 		lineBreak:          lineBreak,
+		dateFormat:         "02.01.",
 	}
 }
 
 func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, "02.01.")
+	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, handler.dateFormat)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to pre-process message events for Grocery handler")
 		return
@@ -45,7 +45,7 @@ func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session) (err error
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, "02.01.")
+	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, handler.dateFormat)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
@@ -58,7 +58,7 @@ func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message 
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, handler.lineBreak, "02.01.")
+	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -90,7 +90,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, "02.01."),
+				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -117,7 +117,7 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, "02.01."),
+				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
