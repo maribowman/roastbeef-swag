@@ -107,7 +107,7 @@ func UpdateItemsFromModal(pantryClient model.PantryClient, modalItems string) {
 func UpdateItems(pantryClient model.PantryClient, userInput string) {
 	for line := range strings.Lines(userInput) {
 		line = strings.TrimSpace(line)
-		if line == "" {
+		if len(line) == 0 {
 			continue
 		}
 
@@ -123,7 +123,6 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 			pantryClient.AddItem(generateNewPantryItem(line))
 		}
 	}
-	return items
 }
 
 // determineRemovableIndices returns a list of indices which can be removed

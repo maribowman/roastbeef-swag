@@ -20,8 +20,7 @@ func TestUpdateFromList(t *testing.T) {
 			shoppingList: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "bacon",
+					Name:   "bacon",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -30,8 +29,7 @@ func TestUpdateFromList(t *testing.T) {
 			expected: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "bacon",
+					Name:   "bacon",
 					Amount: 3,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -41,8 +39,7 @@ func TestUpdateFromList(t *testing.T) {
 			shoppingList: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "bac",
+					Name:   "bac",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}},
@@ -50,8 +47,7 @@ func TestUpdateFromList(t *testing.T) {
 			expected: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "bacon",
+					Name:   "bacon",
 					Amount: 3,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -61,20 +57,17 @@ func TestUpdateFromList(t *testing.T) {
 			shoppingList: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "coffee",
+					Name:   "coffee",
 					Amount: 2,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 2,
-					Item:   "eggz",
+					Name:   "eggz",
 					Amount: 4,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 3,
-					Item:   "milk",
+					Name:   "milk",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -83,20 +76,17 @@ func TestUpdateFromList(t *testing.T) {
 			expected: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "bacon",
+					Name:   "bacon",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 2,
-					Item:   "eggs",
+					Name:   "eggs",
 					Amount: 2,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 3,
-					Item:   "milk",
+					Name:   "milk",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -106,14 +96,12 @@ func TestUpdateFromList(t *testing.T) {
 			shoppingList: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "eggos",
+					Name:   "eggos",
 					Amount: 4,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 2,
-					Item:   "milk",
+					Name:   "milk",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -122,26 +110,22 @@ func TestUpdateFromList(t *testing.T) {
 			expected: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "eggs",
+					Name:   "eggs",
 					Amount: 2,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 2,
-					Item:   "milk",
+					Name:   "milk",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 3,
-					Item:   "bacon",
+					Name:   "bacon",
 					Amount: 1,
 					Date:   time.Now().Truncate(time.Minute),
 				}, {
 					ID:     0,
-					Number: 4,
-					Item:   "beer",
+					Name:   "beer",
 					Amount: 6,
 					Date:   time.Now().Truncate(time.Minute),
 				},
@@ -151,14 +135,12 @@ func TestUpdateFromList(t *testing.T) {
 			shoppingList: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "eggos",
+					Name:   "eggos",
 					Amount: 4,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				}, {
 					ID:     0,
-					Number: 2,
-					Item:   "milk",
+					Name:   "milk",
 					Amount: 1,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -167,8 +149,7 @@ func TestUpdateFromList(t *testing.T) {
 			expected: []model.PantryItem{
 				{
 					ID:     0,
-					Number: 1,
-					Item:   "eggs",
+					Name:   "eggs",
 					Amount: 2,
 					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
 				},
@@ -196,44 +177,44 @@ func TestRemove(t *testing.T) {
 		"single remove": {
 			content: "7",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 5, Item: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 6, Item: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 7, Item: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 8, Item: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
+				{ID: 6, Name: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
+				{ID: 7, Name: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
+				{ID: 8, Name: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"multi remove": {
 			content: "3 5 8",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 5, Item: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 6, Item: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
+				{ID: 6, Name: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"single and range remove": {
 			content: "1 4-7",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"range remove": {
 			content: "2-5",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 5, Item: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "item", Amount: 9, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"remove all": {
@@ -243,33 +224,33 @@ func TestRemove(t *testing.T) {
 		"remove all except single": {
 			content: "* 5",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"remove all except multi": {
 			content: "* 5 2 8",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 8, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"remove all except range": {
 			content: "* 3-6",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 6, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"remove all except single and range": {
 			content: "* 7 1-3",
 			expected: []model.PantryItem{
-				{ID: 0, Number: 1, Item: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 2, Item: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 3, Item: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
-				{ID: 0, Number: 4, Item: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
+				{ID: 1, Name: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "item", Amount: 7, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 	}
@@ -299,27 +280,27 @@ func TestAdd(t *testing.T) {
 	}{
 		"simple add": {
 			content:  "bacon",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "bacon", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
 		},
 		"simple multi word add": {
 			content:  "butter scotch",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "butter scotch", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "butter scotch", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
 		},
 		"simple hyphened add": {
 			content:  "dry-gin",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "dry-gin", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "dry-gin", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
 		},
 		"add with trailing quantity": {
 			content:  "bacon 5",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "bacon", Amount: 5, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 5, Date: time.Now().Truncate(time.Minute)}},
 		},
 		"add with leading quantity": {
 			content:  "13 bacon",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "bacon", Amount: 13, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 13, Date: time.Now().Truncate(time.Minute)}},
 		},
 		"add with numbered name": {
 			content:  "2 monkey47",
-			expected: []model.PantryItem{{ID: 0, Number: 1, Item: "monkey47", Amount: 2, Date: time.Now().Truncate(time.Minute)}},
+			expected: []model.PantryItem{{ID: 1, Name: "monkey47", Amount: 2, Date: time.Now().Truncate(time.Minute)}},
 		},
 	}
 

@@ -8,57 +8,47 @@ import (
 )
 
 type GroceryHandler struct {
-	channelID          string
-	sqlitepantryClient model.PantryClient
-	lineBreak          int
-	dateFormat         string
+	channelID    string
+	pantryClient model.PantryClient
+	lineBreak    int
+	dateFormat   string
 }
 
 func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering grocery handler")
 	return &GroceryHandler{
-		channelID:          channelID,
-		sqlitePantryClient: repository.NewSqlitePantryClient(databaseClient, "groceries"),
-		lineBreak:          lineBreak,
-		dateFormat:         "02.01.",
+		channelID:    channelID,
+		pantryClient: repository.NewSqlitePantryClient(databaseClient, "groceries"),
+		lineBreak:    lineBreak,
+		dateFormat:   "02.01.",
 	}
 }
 
 func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	items, _, content, _, err := PreProcessMessageEvent(session, handler.channelID, handler.dateFormat)
+	_, userInput, _, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to pre-process message events for Grocery handler")
 		return
 	}
 
-	channelItems := UpdateItems(items, content)
-	sqliteItems := handler.pantrySqliteClient.GetItems()
-	if len(sqliteItems) == 0 {
-		for _, item := range channelItems {
-			handler.pantrySqliteClient.AddItem(item)
-		}
-	}
-
-	handler.shoppingList = handler.pantrySqliteClient.GetItems()
+	UpdateItems(handler.pantryClient, userInput)
 	return
 }
 
 func (handler *GroceryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
-	items, lastBotMessageID, content, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID, handler.dateFormat)
+	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
 
-	handler.previousShoppingList = handler.shoppingList
-	handler.shoppingList = UpdateItems(items, content)
-
 	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.shoppingList, session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
+	UpdateItems(handler.pantryClient, userInput)
+	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
 }
 
 func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -78,7 +68,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
 								Label:    "Edit",
-								Value:    model.ToList(handler.shoppingList),
+								Value:    model.ToList(handler.sqlitePantryClient.GetItems()),
 							},
 						},
 					},
@@ -90,7 +80,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, handler.dateFormat),
+				Content:    model.ToMarkdownTable(handler.sqlitePantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -109,15 +99,14 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		handler.previousShoppingList = handler.shoppingList
-		handler.shoppingList = UpdateItemsFromList(
-			handler.shoppingList,
+		UpdateItemsFromList(
+			handler.sqlitePantryClient,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.shoppingList, handler.lineBreak, handler.dateFormat),
+				Content:    model.ToMarkdownTable(handler.sqlitePantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
