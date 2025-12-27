@@ -68,7 +68,7 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 								CustomID: EditModalInput,
 								Style:    discordgo.TextInputParagraph,
 								Label:    "Edit",
-								Value:    model.ToList(handler.sqlitePantryClient.GetItems()),
+								Value:    model.ToList(handler.pantryClient.GetItems()),
 							},
 						},
 					},
@@ -76,11 +76,10 @@ func (handler *GroceryHandler) MessageComponentInteractionEvent(session *discord
 			},
 		}
 	case UndoButton:
-		handler.shoppingList = handler.previousShoppingList
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.sqlitePantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
+				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}
@@ -99,14 +98,14 @@ func (handler *GroceryHandler) ModalSubmitInteractionEvent(session *discordgo.Se
 
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		UpdateItemsFromList(
-			handler.sqlitePantryClient,
+		UpdateItemsFromModal(
+			handler.pantryClient,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.sqlitePantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
+				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
 				Components: CreateMessageButtons(),
 			},
 		}

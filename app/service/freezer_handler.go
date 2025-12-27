@@ -76,7 +76,7 @@ func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discord
 			},
 		}
 	case UndoButton:
-		handler.UseLatestSnapshot() // TODO: Implement snapshots
+		// handler.UseLatestSnapshot() // TODO: Implement snapshots
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
