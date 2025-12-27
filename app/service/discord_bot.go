@@ -28,8 +28,8 @@ func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 		case GroceriesChannel:
 			handlers[channel.ID] = NewGroceryHandler(channel.ID, databaseClient, channel.LineBreak)
 			continue
-		case TkGoodsChannel:
-			handlers[channel.ID] = NewTkHandler(channel.ID, databaseClient, channel.LineBreak)
+		case FreezerChannel:
+			handlers[channel.ID] = NewFreezerHandler(channel.ID, databaseClient, channel.LineBreak)
 			continue
 		}
 		log.Info().Msgf("Could not map channel `%s` to handler", channel.Name)

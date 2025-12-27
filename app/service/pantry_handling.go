@@ -15,7 +15,7 @@ import (
 
 const (
 	GroceriesChannel = "groceries"
-	TkGoodsChannel   = "tkGoods"
+	FreezerChannel   = "freezer"
 
 	EditButton     = "edit-button"
 	UndoButton     = "undo-button"
