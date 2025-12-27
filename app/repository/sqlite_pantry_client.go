@@ -72,7 +72,7 @@ func (client *SqlitePantryClient) RemoveItem(id int) {
 }
 
 func (client *SqlitePantryClient) GetItems() []model.PantryItem {
-	stmt, err := client.sqlite.Prepare(fmt.Sprintf("select * from %s;", client.tableName))
+	stmt, err := client.sqlite.Prepare(fmt.Sprintf("select * from %s order by date asc;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare select all statement on table %s", client.tableName)
 		return []model.PantryItem{}
