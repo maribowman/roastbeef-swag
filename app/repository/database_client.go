@@ -22,6 +22,7 @@ func NewDatabaseClient() model.DatabaseClient {
 }
 
 func initSqliteConnection() *sql.DB {
+	log.Debug().Msgf("Trying to connect to Sqlite %s", config.Config.Database.Sqlite)
 	if _, err := os.Stat(config.Config.Database.Sqlite); os.IsNotExist(err) {
 		log.Info().Msg("No sqlite file present -> creating one")
 		_ = os.MkdirAll(filepath.Dir(config.Config.Database.Sqlite), 0755)
@@ -30,6 +31,8 @@ func initSqliteConnection() *sql.DB {
 		} else {
 			defer file.Close()
 		}
+	} else if config.Config.Database.Sqlite == ":memory:" {
+		log.Info().Msg("Connecting to configured in-memory sqlite")
 	} else {
 		log.Info().Msg("Sqlite file exists, using existing one")
 	}

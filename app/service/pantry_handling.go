@@ -24,6 +24,7 @@ const (
 )
 
 var (
+	// Prefix for modal items
 	modalIndexPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 	// Remove items with *, a list (e.g. 4 5 6) or a range (e.g. 4-6) of numbers
 	removeRegex = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
@@ -67,41 +68,34 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID string) (strin
 	return lastBotMessageID, userInput, removableMessageIDs, err
 }
 
-// TODO: Refactor
-// UpdateItemsFromModal uses the pantryClient to update the pantry according to the modalItems
-func UpdateItemsFromModal(pantryClient model.PantryClient, modalItems string) {
-	var updatedItems []model.PantryItem
-	var newItems []string
-
-	for update := range strings.Lines(updatedList) {
-		if strings.TrimSpace(update) == "" {
+func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
+	items := pantryClient.GetItems()
+	for line := range strings.Lines(modalInput) {
+		if len(strings.TrimSpace(line)) == 0 {
 			continue
 		}
 
-		rawNumber := modalIndexPrefixRegex.FindStringSubmatch(update)
-		item := strings.TrimSpace(modalIndexPrefixRegex.ReplaceAllString(update, ""))
-		var number int
-		if len(rawNumber) == 2 { // Regex matches full string + capture group
-			number, _ = strconv.Atoi(rawNumber[1])
-		} else { // Add new item at the end if there's no number
-			newItems = append(newItems, item)
-			continue
-		}
-		var getOldItemDate = func(oldItems []model.PantryItem) time.Time {
-			for _, oldItem := range oldItems {
-				if oldItem.Number == number {
-					return oldItem.Date
-				}
+		matches := modalIndexPrefixRegex.FindStringSubmatch(line)
+		line = strings.TrimSpace(modalIndexPrefixRegex.ReplaceAllString(line, ""))
+		modalItem := generateNewPantryItem(line)
+
+		if len(matches) == 2 { // Regex matches full string + capture group
+			// Update pantry item with name and amount from modal input
+			index, _ := strconv.Atoi(matches[1])
+			item := items[index-1]
+			updatedItem := model.PantryItem{
+				ID:     item.ID,
+				Name:   modalItem.Name,
+				Amount: modalItem.Amount,
+				Date:   item.Date,
 			}
-			return time.Now().Truncate(time.Minute)
+			log.Debug().Msgf("Item: %v", updatedItem)
+			pantryClient.UpdateItem(updatedItem)
+		} else {
+			// Add new item at the end if there's no number
+			pantryClient.AddItem(modalItem)
 		}
-
-		updatedItems = add(updatedItems, item, getOldItemDate(items))
 	}
-
-	//	for _, newItem := range newItems {
-	//		updatedItems = add(updatedItems, newItem)
-	//	}
 }
 
 func UpdateItems(pantryClient model.PantryClient, userInput string) {
@@ -128,7 +122,7 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 // determineRemovableIndices returns a list of indices which can be removed
 func determineRemovableIndices(line string) []int {
 	var result []int
-	removeAllExcept := false
+	// removeAllExcept := false
 
 	// CAPTURE GROUP 0: entire string
 	// CAPTURE GROUP 1: asterisk
@@ -137,7 +131,7 @@ func determineRemovableIndices(line string) []int {
 
 	// Remove all (except)
 	if captureGroups[1] == "*" {
-		removeAllExcept = true
+		// removeAllExcept = true
 		if captureGroups[0] == captureGroups[1] {
 			return result
 		}
@@ -164,17 +158,17 @@ func determineRemovableIndices(line string) []int {
 		}
 	}
 
-	for _, entry := range items {
-		if slices.Contains(numbers, entry.Number) {
-			if !removeAllExcept {
-				continue
-			}
-		} else if removeAllExcept {
-			continue
-		}
-		entry.Number = len(result) + 1
-		result = append(result, entry)
-	}
+	//	for _, entry := range items {
+	//		if slices.Contains(numbers, entry.Number) {
+	//			if !removeAllExcept {
+	//				continue
+	//			}
+	//		} else if removeAllExcept {
+	//			continue
+	//		}
+	//		entry.Number = len(result) + 1
+	//		result = append(result, entry)
+	//	}
 	return result
 }
 

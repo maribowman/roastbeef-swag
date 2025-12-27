@@ -48,7 +48,7 @@ func (client *SqlitePantryClient) AddItem(item model.PantryItem) (int, error) {
 }
 
 func (client *SqlitePantryClient) UpdateItem(item model.PantryItem) {
-	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, amount=? where index=?;", client.tableName))
+	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, amount=? where id=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare update statement on table %s", client.tableName)
 	}
@@ -90,7 +90,7 @@ func (client *SqlitePantryClient) GetItems() []model.PantryItem {
 	for rows.Next() {
 		var item model.PantryItem
 		var unixDate int64
-		err := rows.Scan(&item.Name, &item.Amount, &unixDate)
+		err := rows.Scan(&item.ID, &item.Name, &item.Amount, &unixDate)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to map row to pantry item")
 		}
