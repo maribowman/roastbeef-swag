@@ -3,7 +3,7 @@ server:
   mode: debug
 
 logging:
-  logLevel: 1  # -1 TRACE | 0 DEBUG | 1 INFO (default) | 2 WARN
+  logLevel: 1 # -1 TRACE | 0 DEBUG | 1 INFO (default) | 2 WARN
   outputFormat: JSON # TEXT | JSON (default)
 
 discord:
@@ -13,10 +13,9 @@ discord:
     - name: groceries
       id: 1084632136180572230
       lineBreak: 20
-    - name: tkGoods
+    - name: freezer
       id: 1146023101755293786
       lineBreak: 18
 
 database:
   sqlite: /data/roastbeef-swag.db
-

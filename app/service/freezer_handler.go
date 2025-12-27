@@ -7,55 +7,51 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type TkHandler struct {
+type FreezerHandler struct {
 	channelID    string
 	pantryClient model.PantryClient
 	lineBreak    int
 	dateFormat   string
 }
 
-func NewTkHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
+func NewFreezerHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
 	log.Debug().Msg("Registering TK handler")
-	return &TkHandler{
+	return &FreezerHandler{
 		channelID:    channelID,
-		pantryClient: repository.NewSqlitePantryClient(databaseClient, "tk"),
+		pantryClient: repository.NewSqlitePantryClient(databaseClient, "freezer"),
 		lineBreak:    lineBreak,
 		dateFormat:   "02.01.06",
 	}
 }
 
-func (handler *TkHandler) ReadyEvent(session *discordgo.Session) error {
+func (handler *FreezerHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 	_, userInput, _, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to pre-process message events for TK handler")
-		return err
+		return
 	}
 
-	UpdateItems(userInput, handler.pantryClient)
-	return nil
+	UpdateItems(handler.pantryClient, userInput)
+	return
 }
 
-func (handler *TkHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
+func (handler *FreezerHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
 	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
 		return
 	}
 
-	// TODO: Remove this test log
-	log.Info().Msgf("LastBotMessageID: %s", lastBotMessageID)
-
-	UpdateItems(handler.pantryClient, userInput)
-
 	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 
-	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak)
+	UpdateItems(handler.pantryClient, userInput)
+	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
 }
 
-func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
@@ -95,7 +91,7 @@ func (handler *TkHandler) MessageComponentInteractionEvent(session *discordgo.Se
 	_ = session.InteractionRespond(interaction.Interaction, response)
 }
 
-func (handler *TkHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *FreezerHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.ModalSubmitData().CustomID {
