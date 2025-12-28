@@ -184,12 +184,6 @@ func determineRemovableIndices(line string) []int {
 
 // generateNewPantryItem creates a new PantryItem
 func generateNewPantryItem(line string) model.PantryItem {
-	// TODO: Can this be centralized? Config?
-	timezone, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		log.Error().Err(err).Msg("Could not load timezone Europe/Berlin")
-	}
-
 	leading := leadingQuantity.FindStringSubmatch(line)
 	trailing := trailingQuantity.FindStringSubmatch(line)
 
@@ -210,7 +204,7 @@ func generateNewPantryItem(line string) model.PantryItem {
 	return model.PantryItem{
 		Name:   strings.TrimSpace(line),
 		Amount: amount,
-		Date:   time.Now().In(timezone).Truncate(time.Minute),
+		Date:   time.Now().Truncate(time.Minute),
 	}
 }
 

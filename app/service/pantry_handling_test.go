@@ -274,46 +274,46 @@ func TestUpdateFromModal(t *testing.T) {
 //		})
 //	}
 //}
-//
-//func TestAdd(t *testing.T) {
-//	// given
-//	tests := map[string]struct {
-//		content  string
-//		expected []model.PantryItem
-//	}{
-//		"simple add": {
-//			content:  "bacon",
-//			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//		"simple multi word add": {
-//			content:  "butter scotch",
-//			expected: []model.PantryItem{{ID: 1, Name: "butter scotch", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//		"simple hyphened add": {
-//			content:  "dry-gin",
-//			expected: []model.PantryItem{{ID: 1, Name: "dry-gin", Amount: 1, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//		"add with trailing quantity": {
-//			content:  "bacon 5",
-//			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 5, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//		"add with leading quantity": {
-//			content:  "13 bacon",
-//			expected: []model.PantryItem{{ID: 1, Name: "bacon", Amount: 13, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//		"add with numbered name": {
-//			content:  "2 monkey47",
-//			expected: []model.PantryItem{{ID: 1, Name: "monkey47", Amount: 2, Date: time.Now().Truncate(time.Minute)}},
-//		},
-//	}
-//
-//	for name, test := range tests {
-//		t.Run(name, func(t *testing.T) {
-//			// when
-//			actual := add([]model.PantryItem{}, test.content, time.Now().Truncate(time.Minute))
-//
-//			// then
-//			assert.EqualValues(t, test.expected, actual)
-//		})
-//	}
-//}
+
+func TestGenerateNewPantryItem(t *testing.T) {
+	// where
+	tests := map[string]struct {
+		content  string
+		expected model.PantryItem
+	}{
+		"simple add": {
+			content:  "bacon",
+			expected: model.PantryItem{Name: "bacon", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+		},
+		"simple multi word add": {
+			content:  "butter scotch",
+			expected: model.PantryItem{Name: "butter scotch", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+		},
+		"simple hyphened add": {
+			content:  "dry-gin",
+			expected: model.PantryItem{Name: "dry-gin", Amount: 1, Date: time.Now().Truncate(time.Minute)},
+		},
+		"add with trailing quantity": {
+			content:  "bacon 5",
+			expected: model.PantryItem{Name: "bacon", Amount: 5, Date: time.Now().Truncate(time.Minute)},
+		},
+		"add with leading quantity": {
+			content:  "13 bacon",
+			expected: model.PantryItem{Name: "bacon", Amount: 13, Date: time.Now().Truncate(time.Minute)},
+		},
+		"add with numbered name": {
+			content:  "2 monkey47",
+			expected: model.PantryItem{Name: "monkey47", Amount: 2, Date: time.Now().Truncate(time.Minute)},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			actual := generateNewPantryItem(test.content)
+
+			// then
+			assert.EqualValues(t, test.expected, actual)
+		})
+	}
+}
