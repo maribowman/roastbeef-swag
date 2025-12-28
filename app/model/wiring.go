@@ -29,5 +29,6 @@ type PantryClient interface {
 	AddItem(PantryItem) (int, error)
 	UpdateItem(PantryItem)
 	RemoveItem(int)
+	RemoveAllItems()
 	GetItems() []PantryItem
 }

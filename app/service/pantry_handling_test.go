@@ -10,7 +10,7 @@ import (
 )
 
 func TestUpdateFromModal(t *testing.T) {
-	// given
+	// where
 	tests := map[string]struct {
 		pantryItems []model.PantryItem
 		modalInput  string
@@ -34,26 +34,25 @@ func TestUpdateFromModal(t *testing.T) {
 				},
 			},
 		},
-		//		"simple item update": {
-		//			shoppingList: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "bac",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}},
-		//			update: "[1] 3 bacon\n",
-		//			expected: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "bacon",
-		//					Amount: 3,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//		},
+		"simple item update": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "BAC",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}},
+			modalInput: "[1] 3 bacon",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
 		//		"complex update": {
-		//			shoppingList: []model.PantryItem{
+		//			pantryItems: []model.PantryItem{
 		//				{
 		//					ID:     0,
 		//					Name:   "coffee",
@@ -92,7 +91,7 @@ func TestUpdateFromModal(t *testing.T) {
 		//			},
 		//		},
 		//		"complex update + added items": {
-		//			shoppingList: []model.PantryItem{
+		//			pantryItems: []model.PantryItem{
 		//				{
 		//					ID:     0,
 		//					Name:   "eggos",
@@ -131,7 +130,7 @@ func TestUpdateFromModal(t *testing.T) {
 		//			},
 		//		},
 		//		"remove item": {
-		//			shoppingList: []model.PantryItem{
+		//			pantryItems: []model.PantryItem{
 		//				{
 		//					ID:     0,
 		//					Name:   "eggos",
@@ -156,7 +155,7 @@ func TestUpdateFromModal(t *testing.T) {
 		//		},
 	}
 
-	// and
+	// given
 	pantryClient := repository.NewSqlitePantryClient(repository.NewDatabaseClient(), "unit_tests")
 
 	for name, test := range tests {
@@ -168,10 +167,13 @@ func TestUpdateFromModal(t *testing.T) {
 
 			// when
 			UpdateItemsFromModal(pantryClient, test.modalInput)
-			actual := pantryClient.GetItems()
 
 			// then
+			actual := pantryClient.GetItems()
 			assert.EqualValues(t, test.expected, actual)
+
+			// cleanup
+			pantryClient.RemoveAllItems()
 		})
 	}
 }

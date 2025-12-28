@@ -71,6 +71,29 @@ func (client *SqlitePantryClient) RemoveItem(id int) {
 	}
 }
 
+func (client *SqlitePantryClient) RemoveAllItems() {
+	// Remove all pantry items
+	stmt, err := client.sqlite.Prepare(fmt.Sprintf("delete from %s;", client.tableName))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to prepare delete all statement on table %s", client.tableName)
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(); err != nil {
+		log.Error().Err(err).Msgf("Failed to delete all items from table %s", client.tableName)
+	}
+	// Reset ID offset (mainly for unit testing)
+	stmt, err = client.sqlite.Prepare(fmt.Sprintf("delete from sqlite_sequence where name='%s';", client.tableName))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to prepare reset sequence statement on table %s", client.tableName)
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(); err != nil {
+		log.Error().Err(err).Msgf("Failed to reset sequence from table %s", client.tableName)
+	}
+}
+
 func (client *SqlitePantryClient) GetItems() []model.PantryItem {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("select * from %s order by date asc;", client.tableName))
 	if err != nil {
