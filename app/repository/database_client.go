@@ -2,12 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
+
 	"github.com/maribowman/roastbeef-swag/app/config"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
-	"os"
-	"path/filepath"
 )
 
 type DatabaseClient struct {

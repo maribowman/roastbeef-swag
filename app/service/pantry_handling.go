@@ -70,6 +70,8 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID string) (strin
 
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 	items := pantryClient.GetItems()
+	updatedItems := make([]int, len(items))
+
 	for line := range strings.Lines(modalInput) {
 		if len(strings.TrimSpace(line)) == 0 {
 			continue
@@ -89,11 +91,19 @@ func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 				Amount: modalItem.Amount,
 				Date:   item.Date,
 			}
-			log.Debug().Msgf("Item: %v", updatedItem)
+
 			pantryClient.UpdateItem(updatedItem)
+			updatedItems = append(updatedItems, index)
 		} else {
 			// Add new item at the end if there's no number
 			pantryClient.AddItem(modalItem)
+		}
+	}
+
+	// Remove missing (non-updated) IDs
+	for index, item := range items {
+		if !slices.Contains(updatedItems, index+1) {
+			pantryClient.RemoveItem(item.ID)
 		}
 	}
 }

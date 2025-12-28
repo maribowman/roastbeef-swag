@@ -51,108 +51,101 @@ func TestUpdateFromModal(t *testing.T) {
 				},
 			},
 		},
-		//		"complex update": {
-		//			pantryItems: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "coffee",
-		//					Amount: 2,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "eggz",
-		//					Amount: 4,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "milk",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//			update: "[1] 1 bacon\n[2] 2 eggs\n\n[3] milk",
-		//			expected: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "bacon",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "eggs",
-		//					Amount: 2,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "milk",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//		},
-		//		"complex update + added items": {
-		//			pantryItems: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "eggos",
-		//					Amount: 4,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "milk",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//			update: "bacon\n[1] 2 eggs\n[2] milk\n6 beer",
-		//			expected: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "eggs",
-		//					Amount: 2,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "milk",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "bacon",
-		//					Amount: 1,
-		//					Date:   time.Now().Truncate(time.Minute),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "beer",
-		//					Amount: 6,
-		//					Date:   time.Now().Truncate(time.Minute),
-		//				},
-		//			},
-		//		},
-		//		"remove item": {
-		//			pantryItems: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "eggos",
-		//					Amount: 4,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				}, {
-		//					ID:     0,
-		//					Name:   "milk",
-		//					Amount: 1,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//			update: "[1] 2 eggs\n",
-		//			expected: []model.PantryItem{
-		//				{
-		//					ID:     0,
-		//					Name:   "eggs",
-		//					Amount: 2,
-		//					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-		//				},
-		//			},
-		//		},
+		"complex update": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "coffee",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					Name:   "eggz",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					Name:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			modalInput: "[1] 1 bacon\n[2] 2 eggs\n\n[3] milk",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "bacon",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Name:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Name:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"complex update + added items": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "eggos",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					Name:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			modalInput: "bacon\n[1] 2 eggs\n[2] milk\n6 beer",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     2,
+					Name:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					ID:     3,
+					Name:   "bacon",
+					Amount: 1,
+					Date:   time.Now().Truncate(time.Minute),
+				}, {
+					ID:     4,
+					Name:   "beer",
+					Amount: 6,
+					Date:   time.Now().Truncate(time.Minute),
+				},
+			},
+		},
+		"remove item": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "eggos",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				}, {
+					Name:   "milk",
+					Amount: 1,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			modalInput: "[1] 2 eggs\n",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "eggs",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
 	}
 
 	// given
