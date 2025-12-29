@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUpdateFromModal(t *testing.T) {
+func TestUpdateItemsFromModal(t *testing.T) {
 	// where
 	tests := map[string]struct {
 		pantryItems []model.PantryItem
@@ -160,6 +160,86 @@ func TestUpdateFromModal(t *testing.T) {
 
 			// when
 			UpdateItemsFromModal(pantryClient, test.modalInput)
+
+			// then
+			actual := pantryClient.GetItems()
+			assert.EqualValues(t, test.expected, actual)
+
+			// cleanup
+			pantryClient.RemoveAllItems()
+		})
+	}
+}
+
+func TestUpdateItems(t *testing.T) {
+	// where
+	tests := map[string]struct {
+		pantryItems []model.PantryItem
+		input       string
+		expected    []model.PantryItem
+	}{
+		// EDIT TEST CASES
+		"simple quantity update": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "bacon",
+					Amount: 3,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			input: "1++",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "bacon",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"advanced quantity update": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "bacon",
+					Amount: 4,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			input: "1--2",
+			expected: []model.PantryItem{
+				{
+					ID:     1,
+					Name:   "bacon",
+					Amount: 2,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+		},
+		"advanced quantity update exception": {
+			pantryItems: []model.PantryItem{
+				{
+					Name:   "bacon",
+					Amount: 5,
+					Date:   time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
+				},
+			},
+			input:    "1--5",
+			expected: nil,
+		},
+	}
+
+	// given
+	pantryClient := repository.NewSqlitePantryClient(repository.NewDatabaseClient(), "unit_tests")
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// and
+			for _, item := range test.pantryItems {
+				pantryClient.AddItem(item)
+			}
+
+			// when
+			UpdateItems(pantryClient, test.input)
 
 			// then
 			actual := pantryClient.GetItems()

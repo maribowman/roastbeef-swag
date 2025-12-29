@@ -118,23 +118,62 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 		if len(line) == 0 {
 			continue
 		}
+
 		if editRegex.MatchString(line) {
-			// TODO: impl edit
+			// Edit quantity of pantry item(s)
+			index, quantityDelta := determineQuantityDelta(line)
+			for idx, item := range pantryClient.GetItems() {
+				if idx+1 == index {
+					updatedQuantity := item.Amount + quantityDelta
+					if updatedQuantity <= 0 {
+						pantryClient.RemoveItem(item.ID)
+					}
+					pantryClient.UpdateItem(model.PantryItem{
+						ID:     item.ID,
+						Name:   item.Name,
+						Amount: updatedQuantity,
+						Date:   item.Date,
+					})
+				}
+			}
+
 		} else if removeRegex.MatchString(line) {
-			removableIndices := determineIndices(line)
+			// Remove pantry item(s)
+			determineIndices := determineIndices(line)
 			for index, item := range pantryClient.GetItems() {
-				if slices.Contains(removableIndices, index+1) {
+				if slices.Contains(determineIndices, index+1) {
 					pantryClient.RemoveItem(item.ID)
 				}
 			}
 
 		} else {
+			// Add new pantry item(s)
 			pantryClient.AddItem(generateNewPantryItem(line))
 		}
 	}
 }
 
-// determineIndices returns a list of indices
+func determineQuantityDelta(input string) (int, int) {
+	matches := editRegex.FindStringSubmatch(input)
+
+	index, _ := strconv.Atoi(matches[1])
+	var operator int
+	switch matches[2] {
+	case "++":
+		operator = 1
+	case "--":
+		operator = -1
+	}
+
+	delta := 1
+	if matches[3] != "" {
+		delta, _ = strconv.Atoi(matches[3])
+	}
+
+	return index, delta * operator
+}
+
+// determineIndices resolves all specified indices
 func determineIndices(input string) []int {
 	var result []int
 
