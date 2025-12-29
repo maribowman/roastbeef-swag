@@ -33,8 +33,6 @@ var (
 	indexIdentifierRegex = regexp.MustCompile(`(\d+)(?:-(\d+))?`)
 	// Allow quantity specification at the beginning or end
 	quantityIdentifierRegex = regexp.MustCompile(`^(?:(\d+)\s+)?(.*?)(?:\s+(\d+))?$`)
-	leadingQuantity         = regexp.MustCompile(`^(\d+)\s.*`)
-	trailingQuantity        = regexp.MustCompile(`\s(\d+)$`)
 )
 
 // PreProcessMessageEvent consumes and preprocesses all channel messages.
@@ -223,26 +221,22 @@ func determineIndices(input string) []int {
 
 // generateNewPantryItem creates a new PantryItem
 func generateNewPantryItem(input string) model.PantryItem {
-	leading := leadingQuantity.FindStringSubmatch(input)
-	trailing := trailingQuantity.FindStringSubmatch(input)
+	// match[0] = entire string
+	// match[1] = leading quantity
+	// match[2] = item name
+	// match[3] = trailing quantity
+	matches := quantityIdentifierRegex.FindStringSubmatch(input)
 
-	var quantity string
-	if leading != nil {
-		quantity = leading[1]
-		input = strings.TrimPrefix(input, quantity)
-	} else if trailing != nil {
-		quantity = trailing[1]
-		input = strings.TrimSuffix(input, quantity)
-	}
-
-	amount, err := strconv.Atoi(quantity)
-	if err != nil {
-		amount = 1
+	quantity := 1
+	if matches[1] != "" {
+		quantity, _ = strconv.Atoi(matches[1])
+	} else if matches[3] != "" {
+		quantity, _ = strconv.Atoi(matches[3])
 	}
 
 	return model.PantryItem{
-		Name:     strings.TrimSpace(input),
-		Quantity: amount,
+		Name:     matches[2],
+		Quantity: quantity,
 		Date:     time.Now().Truncate(time.Minute),
 	}
 }
