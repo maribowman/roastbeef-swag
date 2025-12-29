@@ -200,6 +200,7 @@ func TestUpdateItems(t *testing.T) {
 			input:           "1--5",
 			expected:        nil,
 		},
+
 		// REMOVE TEST CASES
 		"single number remove": {
 			pantryItemCount: 3,
@@ -311,6 +312,54 @@ func TestUpdateItems(t *testing.T) {
 				{ID: 8, Name: "Item #8", Quantity: 64, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
+
+		// ADD TEST CASES
+		"simple add": {
+			pantryItemCount: 0,
+			input:           "bacon",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"simple multi word add": {
+			pantryItemCount: 0,
+			input:           "butter scotch",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "butter scotch", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"simple hyphened add": {
+			pantryItemCount: 0,
+			input:           "dry-gin",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "dry-gin", Quantity: 1, Date: time.Now().Truncate(time.Minute)}},
+		},
+		"add with trailing quantity": {
+			pantryItemCount: 0,
+			input:           "bacon 5",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 5, Date: time.Now().Truncate(time.Minute)}},
+		},
+		"add with leading quantity": {
+			pantryItemCount: 0,
+			input:           "13 bacon",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 13, Date: time.Now().Truncate(time.Minute)}},
+		},
+		"add with numbered name": {
+			pantryItemCount: 0,
+			input:           "2 monkey47",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "monkey47", Quantity: 2, Date: time.Now().Truncate(time.Minute)}},
+		},
+		"multi line add": {
+			pantryItemCount: 0,
+			input:           "3 bacon\ncoffee 4",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 3, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "coffee", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
 	}
 
 	// given
@@ -336,49 +385,6 @@ func TestUpdateItems(t *testing.T) {
 
 			// cleanup
 			pantryClient.RemoveAllItems()
-		})
-	}
-}
-
-func TestGenerateNewPantryItem(t *testing.T) {
-	// where
-	tests := map[string]struct {
-		input    string
-		expected model.PantryItem
-	}{
-		"simple add": {
-			input:    "bacon",
-			expected: model.PantryItem{Name: "bacon", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
-		},
-		"simple multi word add": {
-			input:    "butter scotch",
-			expected: model.PantryItem{Name: "butter scotch", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
-		},
-		"simple hyphened add": {
-			input:    "dry-gin",
-			expected: model.PantryItem{Name: "dry-gin", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
-		},
-		"add with trailing quantity": {
-			input:    "bacon 5",
-			expected: model.PantryItem{Name: "bacon", Quantity: 5, Date: time.Now().Truncate(time.Minute)},
-		},
-		"add with leading quantity": {
-			input:    "13 bacon",
-			expected: model.PantryItem{Name: "bacon", Quantity: 13, Date: time.Now().Truncate(time.Minute)},
-		},
-		"add with numbered name": {
-			input:    "2 monkey47",
-			expected: model.PantryItem{Name: "monkey47", Quantity: 2, Date: time.Now().Truncate(time.Minute)},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			// when
-			actual := generateNewPantryItem(test.input)
-
-			// then
-			assert.EqualValues(t, test.expected, actual)
 		})
 	}
 }
