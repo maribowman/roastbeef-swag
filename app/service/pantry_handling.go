@@ -28,7 +28,7 @@ var (
 	modalIndexPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 	// Routing Regexes
 	editRegex   = regexp.MustCompile(`^(\d+)(\+\+|--)(\d+)?$`)
-	removeRegex = regexp.MustCompile(`^(\*|[\d\s\-]+)$`)
+	removeRegex = regexp.MustCompile(`^(\*|(\*\s)?[\d\s\-]+)$`)
 	// Detects digits and ranges for removal
 	indexIdentifierRegex = regexp.MustCompile(`(\d+)(?:-(\d+))?`)
 	// Allow quantity specification at the beginning or end
@@ -139,9 +139,24 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 
 		} else if removeRegex.MatchString(line) {
 			// Remove pantry item(s)
-			determineIndices := determineIndices(line)
+			isRemoveAll := false
+			if strings.HasPrefix(line, "*") {
+				isRemoveAll = true
+				line = strings.TrimSpace(strings.TrimPrefix(line, "*"))
+			}
+
+			determinedIndices := determineIndices(line)
+			if isRemoveAll && len(determinedIndices) == 0 {
+				pantryClient.RemoveAllItems()
+			}
+
 			for index, item := range pantryClient.GetItems() {
-				if slices.Contains(determineIndices, index+1) {
+				if isRemoveAll {
+					if slices.Contains(determinedIndices, index+1) {
+						continue
+					}
+					pantryClient.RemoveItem(item.ID)
+				} else if slices.Contains(determinedIndices, index+1) {
 					pantryClient.RemoveItem(item.ID)
 				}
 			}
@@ -154,6 +169,10 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 }
 
 func determineQuantityDelta(input string) (int, int) {
+	// match[0] entire string (e.g. `1--` or `1--4`)
+	// match[1] pantry item index (e.g. `1`)
+	// match[2] operator (e.g. `++` or `--`)
+	// match[3] delta (e.g. `4`)
 	matches := editRegex.FindStringSubmatch(input)
 
 	index, _ := strconv.Atoi(matches[1])

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -174,57 +175,141 @@ func TestUpdateItemsFromModal(t *testing.T) {
 func TestUpdateItems(t *testing.T) {
 	// where
 	tests := map[string]struct {
-		pantryItems []model.PantryItem
-		input       string
-		expected    []model.PantryItem
+		pantryItemCount int
+		input           string
+		expected        []model.PantryItem
 	}{
 		// EDIT TEST CASES
 		"simple quantity update": {
-			pantryItems: []model.PantryItem{
-				{
-					Name:     "bacon",
-					Quantity: 3,
-					Date:     time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
-			},
-			input: "1++",
+			pantryItemCount: 1,
+			input:           "1++",
 			expected: []model.PantryItem{
-				{
-					ID:       1,
-					Name:     "bacon",
-					Quantity: 4,
-					Date:     time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
+				{ID: 1, Name: "Item #1", Quantity: 2, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
 		"advanced quantity update": {
-			pantryItems: []model.PantryItem{
-				{
-					Name:     "bacon",
-					Quantity: 4,
-					Date:     time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
-			},
-			input: "1--2",
+			pantryItemCount: 2,
+			input:           "2--3",
 			expected: []model.PantryItem{
-				{
-					ID:       1,
-					Name:     "bacon",
-					Quantity: 2,
-					Date:     time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "Item #2", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
-		"advanced quantity update exception": {
-			pantryItems: []model.PantryItem{
-				{
-					Name:     "bacon",
-					Quantity: 5,
-					Date:     time.Date(time.Now().Year(), 12, 27, 0, 0, 0, 0, time.Local),
-				},
+		"advanced negative quantity update exception": {
+			pantryItemCount: 1,
+			input:           "1--5",
+			expected:        nil,
+		},
+		// REMOVE TEST CASES
+		"single number remove": {
+			pantryItemCount: 3,
+			input:           "2",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
 			},
-			input:    "1--5",
-			expected: nil,
+		},
+		"multi number remove": {
+			pantryItemCount: 5,
+			input:           "2 4 5",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"single range remove": {
+			pantryItemCount: 5,
+			input:           "2-5",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"multi range remove": {
+			pantryItemCount: 10,
+			input:           "1-3 5-9",
+			expected: []model.PantryItem{
+				{ID: 4, Name: "Item #4", Quantity: 16, Date: time.Now().Truncate(time.Minute)},
+				{ID: 10, Name: "Item #10", Quantity: 100, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"single number and single range remove": {
+			pantryItemCount: 5,
+			input:           "1 3-5",
+			expected: []model.PantryItem{
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"multi number and multi range remove": {
+			pantryItemCount: 15,
+			input:           "1 3 5-10 12-15",
+			expected: []model.PantryItem{
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "Item #4", Quantity: 16, Date: time.Now().Truncate(time.Minute)},
+				{ID: 11, Name: "Item #11", Quantity: 121, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all": {
+			pantryItemCount: 5,
+			input:           "*",
+			expected:        nil,
+		},
+		"remove all except single number": {
+			pantryItemCount: 1,
+			input:           "* 1",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all except multi number": {
+			pantryItemCount: 5,
+			input:           "* 2 4",
+			expected: []model.PantryItem{
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "Item #4", Quantity: 16, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all except single range": {
+			pantryItemCount: 5,
+			input:           "* 1-3",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all except multi range": {
+			pantryItemCount: 10,
+			input:           "* 1-3 5-6",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "Item #5", Quantity: 25, Date: time.Now().Truncate(time.Minute)},
+				{ID: 6, Name: "Item #6", Quantity: 36, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all except single number and single range": {
+			pantryItemCount: 5,
+			input:           "* 5 1-3",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "Item #2", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "Item #5", Quantity: 25, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
+		"remove all except multi number and multi range": {
+			pantryItemCount: 10,
+			input:           "* 1 6 3-5 7-8",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "Item #1", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 3, Name: "Item #3", Quantity: 9, Date: time.Now().Truncate(time.Minute)},
+				{ID: 4, Name: "Item #4", Quantity: 16, Date: time.Now().Truncate(time.Minute)},
+				{ID: 5, Name: "Item #5", Quantity: 25, Date: time.Now().Truncate(time.Minute)},
+				{ID: 6, Name: "Item #6", Quantity: 36, Date: time.Now().Truncate(time.Minute)},
+				{ID: 7, Name: "Item #7", Quantity: 49, Date: time.Now().Truncate(time.Minute)},
+				{ID: 8, Name: "Item #8", Quantity: 64, Date: time.Now().Truncate(time.Minute)},
+			},
 		},
 	}
 
@@ -234,8 +319,12 @@ func TestUpdateItems(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// and
-			for _, item := range test.pantryItems {
-				pantryClient.AddItem(item)
+			for i := 1; i <= test.pantryItemCount; i++ {
+				pantryClient.AddItem(model.PantryItem{
+					Name:     fmt.Sprintf("Item #%d", i),
+					Quantity: i * i,
+					Date:     time.Now().Truncate(time.Minute),
+				})
 			}
 
 			// when
@@ -247,85 +336,6 @@ func TestUpdateItems(t *testing.T) {
 
 			// cleanup
 			pantryClient.RemoveAllItems()
-		})
-	}
-}
-
-func TestDetermineIndices(t *testing.T) {
-	// where
-	tests := map[string]struct {
-		input    string
-		expected []int
-	}{
-		"single number remove": {
-			input:    "7",
-			expected: []int{7},
-		},
-		"multi number remove": {
-			input:    "3 5 8",
-			expected: []int{3, 5, 8},
-		},
-		"single range remove": {
-			input:    "2-5",
-			expected: []int{2, 3, 4, 5},
-		},
-		"multi range remove": {
-			input:    "1-3 7-9",
-			expected: []int{1, 2, 3, 7, 8, 9},
-		},
-		"single number and single range remove": {
-			input:    "1 4-7",
-			expected: []int{1, 4, 5, 6, 7},
-		},
-		"multi number and multi range remove": {
-			input:    "1 3 5-7 9-11",
-			expected: []int{1, 3, 5, 6, 7, 9, 10, 11},
-		},
-		//		"remove all": {
-		//			input:  "*",
-		//			expected: []model.PantryItem{},
-		//		},
-		//		"remove all except single": {
-		//			input: "* 5",
-		//			expected: []model.PantryItem{
-		//				{ID: 1, Name: "item", Quantity: 5, Date: time.Now().Truncate(time.Minute)},
-		//			},
-		//		},
-		//		"remove all except multi": {
-		//			input: "* 5 2 8",
-		//			expected: []model.PantryItem{
-		//				{ID: 1, Name: "item", Quantity: 2, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 2, Name: "item", Quantity: 5, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 3, Name: "item", Quantity: 8, Date: time.Now().Truncate(time.Minute)},
-		//			},
-		//		},
-		//		"remove all except range": {
-		//			input: "* 3-6",
-		//			expected: []model.PantryItem{
-		//				{ID: 1, Name: "item", Quantity: 3, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 2, Name: "item", Quantity: 4, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 3, Name: "item", Quantity: 5, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 4, Name: "item", Quantity: 6, Date: time.Now().Truncate(time.Minute)},
-		//			},
-		//		},
-		//		"remove all except single and range": {
-		//			input: "* 7 1-3",
-		//			expected: []model.PantryItem{
-		//				{ID: 1, Name: "item", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 2, Name: "item", Quantity: 2, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 3, Name: "item", Quantity: 3, Date: time.Now().Truncate(time.Minute)},
-		//				{ID: 4, Name: "item", Quantity: 7, Date: time.Now().Truncate(time.Minute)},
-		//			},
-		//		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			// when
-			actual := determineIndices(test.input)
-
-			// then
-			assert.EqualValues(t, test.expected, actual)
 		})
 	}
 }
