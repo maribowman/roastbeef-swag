@@ -90,10 +90,10 @@ func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 			index, _ := strconv.Atoi(matches[1])
 			item := items[index-1]
 			updatedItem := model.PantryItem{
-				ID:     item.ID,
-				Name:   modalItem.Name,
-				Amount: modalItem.Amount,
-				Date:   item.Date,
+				ID:       item.ID,
+				Name:     modalItem.Name,
+				Quantity: modalItem.Quantity,
+				Date:     item.Date,
 			}
 
 			pantryClient.UpdateItem(updatedItem)
@@ -124,15 +124,15 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 			index, quantityDelta := determineQuantityDelta(line)
 			for idx, item := range pantryClient.GetItems() {
 				if idx+1 == index {
-					updatedQuantity := item.Amount + quantityDelta
+					updatedQuantity := item.Quantity + quantityDelta
 					if updatedQuantity <= 0 {
 						pantryClient.RemoveItem(item.ID)
 					}
 					pantryClient.UpdateItem(model.PantryItem{
-						ID:     item.ID,
-						Name:   item.Name,
-						Amount: updatedQuantity,
-						Date:   item.Date,
+						ID:       item.ID,
+						Name:     item.Name,
+						Quantity: updatedQuantity,
+						Date:     item.Date,
 					})
 				}
 			}
@@ -222,9 +222,9 @@ func generateNewPantryItem(input string) model.PantryItem {
 	}
 
 	return model.PantryItem{
-		Name:   strings.TrimSpace(input),
-		Amount: amount,
-		Date:   time.Now().Truncate(time.Minute),
+		Name:     strings.TrimSpace(input),
+		Quantity: amount,
+		Date:     time.Now().Truncate(time.Minute),
 	}
 }
 

@@ -13,10 +13,10 @@ import (
 )
 
 type PantryItem struct {
-	ID     int
-	Name   string
-	Amount int
-	Date   time.Time
+	ID       int
+	Name     string
+	Quantity int
+	Date     time.Time
 }
 
 func ToList(items []PantryItem) string {
@@ -25,7 +25,7 @@ func ToList(items []PantryItem) string {
 		if index != 0 {
 			shoppingList += "\n"
 		}
-		shoppingList += fmt.Sprintf("[%d] %d %s", index+1, item.Amount, item.Name)
+		shoppingList += fmt.Sprintf("[%d] %d %s", index+1, item.Quantity, item.Name)
 	}
 	return shoppingList
 }
@@ -43,7 +43,7 @@ func processItemMarkdownLayout(index int, item PantryItem, linebreak int, dateFo
 		return [][]string{{
 			strconv.Itoa(index),
 			item.Name,
-			strconv.Itoa(item.Amount),
+			strconv.Itoa(item.Quantity),
 			item.Date.Format(dateFormat),
 		},
 		}
@@ -91,7 +91,7 @@ func processItemMarkdownLayout(index int, item PantryItem, linebreak int, dateFo
 			result = append(result, []string{
 				strconv.Itoa(index),
 				line,
-				strconv.Itoa(item.Amount),
+				strconv.Itoa(item.Quantity),
 				item.Date.Format(dateFormat),
 			})
 			continue

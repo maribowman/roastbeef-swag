@@ -24,21 +24,21 @@ func NewSqlitePantryClient(databaseClient model.DatabaseClient, tableName string
 }
 
 func (client *SqlitePantryClient) init() {
-	_, err := client.sqlite.Exec(fmt.Sprintf("create table if not exists %s(id integer primary key autoincrement, name text not null, amount int not null, date int not null);", client.tableName))
+	_, err := client.sqlite.Exec(fmt.Sprintf("create table if not exists %s(id integer primary key autoincrement, name text not null, quantity int not null, date int not null);", client.tableName))
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not create pantry database table %s", client.tableName)
 	}
 }
 
 func (client *SqlitePantryClient) AddItem(item model.PantryItem) (int, error) {
-	stmt, err := client.sqlite.Prepare(fmt.Sprintf("insert into %s (name, amount, date) values (?, ?, ?);", client.tableName))
+	stmt, err := client.sqlite.Prepare(fmt.Sprintf("insert into %s (name, quantity, date) values (?, ?, ?);", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare insert statement on table %s", client.tableName)
 		return -1, err
 	}
 	defer stmt.Close()
 
-	result, err := stmt.Exec(item.Name, item.Amount, item.Date.Unix())
+	result, err := stmt.Exec(item.Name, item.Quantity, item.Date.Unix())
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to insert item [%+v] into table %s", item, client.tableName)
 		return -1, err
@@ -48,13 +48,13 @@ func (client *SqlitePantryClient) AddItem(item model.PantryItem) (int, error) {
 }
 
 func (client *SqlitePantryClient) UpdateItem(item model.PantryItem) {
-	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, amount=? where id=?;", client.tableName))
+	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, quantity=? where id=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare update statement on table %s", client.tableName)
 	}
 	defer stmt.Close()
 
-	if _, err := stmt.Exec(item.Name, item.Amount, item.ID); err != nil {
+	if _, err := stmt.Exec(item.Name, item.Quantity, item.ID); err != nil {
 		log.Error().Err(err).Msgf("Failed to update item [%+v] in table %s", item, client.tableName)
 	}
 }
@@ -113,7 +113,7 @@ func (client *SqlitePantryClient) GetItems() []model.PantryItem {
 	for rows.Next() {
 		var item model.PantryItem
 		var unixDate int64
-		err := rows.Scan(&item.ID, &item.Name, &item.Amount, &unixDate)
+		err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &unixDate)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to map row to pantry item")
 		}
