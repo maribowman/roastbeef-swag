@@ -132,53 +132,28 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 // determineRemovableIndices returns a list of indices which can be removed
 func determineRemovableIndices(line string) []int {
 	var result []int
-	// removeAllExcept := false
 
-	// CAPTURE GROUP 0: entire string
-	// CAPTURE GROUP 1: asterisk
-	// CAPTURE GROUP 2: range
-	captureGroups := removeRegex.FindStringSubmatch(line)
+	re := regexp.MustCompile(`(\d+)(?:-(\d+))?`)
+	matches := re.FindAllStringSubmatch(line, -1)
 
-	// Remove all (except)
-	if captureGroups[1] == "*" {
-		// removeAllExcept = true
-		if captureGroups[0] == captureGroups[1] {
-			return result
-		}
-	}
+	for _, match := range matches {
+		start, _ := strconv.Atoi(match[1])
 
-	// Add single removable numbers
-	var indices []int
-	if captureGroups[0] != captureGroups[2] {
-		for value := range strings.SplitSeq(captureGroups[0], " ") {
-			if index, err := strconv.Atoi(value); err == nil {
-				indices = append(indices, index)
+		if match[2] != "" {
+			// Group 2 not empty -> range detected
+			end, _ := strconv.Atoi(match[2])
+			// Resolve range
+			if start <= end {
+				for i := start; i <= end; i++ {
+					result = append(result, i)
+				}
 			}
+		} else {
+			// Single number
+			result = append(result, start)
 		}
 	}
 
-	// Add range to removable numbers
-	if captureGroups[2] != "" {
-		range_ := strings.Split(captureGroups[2], "-")
-		rangeStart, _ := strconv.Atoi(range_[0])
-		rangeEnd, _ := strconv.Atoi(range_[1])
-
-		for i := rangeStart; i <= rangeEnd; i++ {
-			indices = append(indices, i)
-		}
-	}
-
-	//	for _, entry := range items {
-	//		if slices.Contains(numbers, entry.Number) {
-	//			if !removeAllExcept {
-	//				continue
-	//			}
-	//		} else if removeAllExcept {
-	//			continue
-	//		}
-	//		entry.Number = len(result) + 1
-	//		result = append(result, entry)
-	//	}
 	return result
 }
 
