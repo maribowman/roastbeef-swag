@@ -26,11 +26,15 @@ const (
 var (
 	// Prefix for modal items
 	modalIndexPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
-	// Remove items with *, a list (e.g. 4 5 6) or a range (e.g. 4-6) of numbers
-	removeRegex = regexp.MustCompile(`^(\*)?(?:\s*\d+)*\s*(\d+-\d+)?$`)
-	// Allow to specify quantities at the beginning or end of a message
-	leadingQuantity  = regexp.MustCompile(`^(\d+)\s.*`)
-	trailingQuantity = regexp.MustCompile(`\s(\d+)$`)
+	// Routing Regexes
+	editRegex   = regexp.MustCompile(`^(\d+)(\+\+|--)(\d+)?$`)
+	removeRegex = regexp.MustCompile(`^(\*|[\d\s\-]+)$`)
+	// Detects digits and ranges for removal
+	indexIdentifierRegex = regexp.MustCompile(`(\d+)(?:-(\d+))?`)
+	// Allow quantity specification at the beginning or end
+	quantityIdentifierRegex = regexp.MustCompile(`^(?:(\d+)\s+)?(.*?)(?:\s+(\d+))?$`)
+	leadingQuantity         = regexp.MustCompile(`^(\d+)\s.*`)
+	trailingQuantity        = regexp.MustCompile(`\s(\d+)$`)
 )
 
 // PreProcessMessageEvent consumes and preprocesses all channel messages.
@@ -114,9 +118,10 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 		if len(line) == 0 {
 			continue
 		}
-
-		if removeRegex.MatchString(line) {
-			removableIndices := determineRemovableIndices(line)
+		if editRegex.MatchString(line) {
+			// TODO: impl edit
+		} else if removeRegex.MatchString(line) {
+			removableIndices := determineIndices(line)
 			for index, item := range pantryClient.GetItems() {
 				if slices.Contains(removableIndices, index+1) {
 					pantryClient.RemoveItem(item.ID)
@@ -129,27 +134,28 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 	}
 }
 
-// determineRemovableIndices returns a list of indices which can be removed
-func determineRemovableIndices(line string) []int {
+// determineIndices returns a list of indices
+func determineIndices(input string) []int {
 	var result []int
 
-	re := regexp.MustCompile(`(\d+)(?:-(\d+))?`)
-	matches := re.FindAllStringSubmatch(line, -1)
+	// match[0] entire string (e.g. `3` or `3-6`)
+	// match[1] range start or single digit (e.g. `3`)
+	// match[2] range end (e.g. `6`)
+	matches := indexIdentifierRegex.FindAllStringSubmatch(input, -1)
 
 	for _, match := range matches {
 		start, _ := strconv.Atoi(match[1])
 
 		if match[2] != "" {
-			// Group 2 not empty -> range detected
+			// Range detected
 			end, _ := strconv.Atoi(match[2])
-			// Resolve range
 			if start <= end {
 				for i := start; i <= end; i++ {
 					result = append(result, i)
 				}
 			}
 		} else {
-			// Single number
+			// Single digit
 			result = append(result, start)
 		}
 	}
@@ -158,17 +164,17 @@ func determineRemovableIndices(line string) []int {
 }
 
 // generateNewPantryItem creates a new PantryItem
-func generateNewPantryItem(line string) model.PantryItem {
-	leading := leadingQuantity.FindStringSubmatch(line)
-	trailing := trailingQuantity.FindStringSubmatch(line)
+func generateNewPantryItem(input string) model.PantryItem {
+	leading := leadingQuantity.FindStringSubmatch(input)
+	trailing := trailingQuantity.FindStringSubmatch(input)
 
 	var quantity string
 	if leading != nil {
 		quantity = leading[1]
-		line = strings.TrimPrefix(line, quantity)
+		input = strings.TrimPrefix(input, quantity)
 	} else if trailing != nil {
 		quantity = trailing[1]
-		line = strings.TrimSuffix(line, quantity)
+		input = strings.TrimSuffix(input, quantity)
 	}
 
 	amount, err := strconv.Atoi(quantity)
@@ -177,7 +183,7 @@ func generateNewPantryItem(line string) model.PantryItem {
 	}
 
 	return model.PantryItem{
-		Name:   strings.TrimSpace(line),
+		Name:   strings.TrimSpace(input),
 		Amount: amount,
 		Date:   time.Now().Truncate(time.Minute),
 	}

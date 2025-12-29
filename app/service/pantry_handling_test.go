@@ -171,48 +171,48 @@ func TestUpdateFromModal(t *testing.T) {
 	}
 }
 
-func TestDetermineRemovableIndices(t *testing.T) {
+func TestDetermineIndices(t *testing.T) {
 	// where
 	tests := map[string]struct {
-		line     string
+		input    string
 		expected []int
 	}{
 		"single number remove": {
-			line:     "7",
+			input:    "7",
 			expected: []int{7},
 		},
 		"multi number remove": {
-			line:     "3 5 8",
+			input:    "3 5 8",
 			expected: []int{3, 5, 8},
 		},
 		"single range remove": {
-			line:     "2-5",
+			input:    "2-5",
 			expected: []int{2, 3, 4, 5},
 		},
 		"multi range remove": {
-			line:     "1-3 7-9",
+			input:    "1-3 7-9",
 			expected: []int{1, 2, 3, 7, 8, 9},
 		},
 		"single number and single range remove": {
-			line:     "1 4-7",
+			input:    "1 4-7",
 			expected: []int{1, 4, 5, 6, 7},
 		},
 		"multi number and multi range remove": {
-			line:     "1 3 5-7 9-11",
+			input:    "1 3 5-7 9-11",
 			expected: []int{1, 3, 5, 6, 7, 9, 10, 11},
 		},
 		//		"remove all": {
-		//			line:  "*",
+		//			input:  "*",
 		//			expected: []model.PantryItem{},
 		//		},
 		//		"remove all except single": {
-		//			line: "* 5",
+		//			input: "* 5",
 		//			expected: []model.PantryItem{
 		//				{ID: 1, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
 		//			},
 		//		},
 		//		"remove all except multi": {
-		//			line: "* 5 2 8",
+		//			input: "* 5 2 8",
 		//			expected: []model.PantryItem{
 		//				{ID: 1, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
 		//				{ID: 2, Name: "item", Amount: 5, Date: time.Now().Truncate(time.Minute)},
@@ -220,7 +220,7 @@ func TestDetermineRemovableIndices(t *testing.T) {
 		//			},
 		//		},
 		//		"remove all except range": {
-		//			line: "* 3-6",
+		//			input: "* 3-6",
 		//			expected: []model.PantryItem{
 		//				{ID: 1, Name: "item", Amount: 3, Date: time.Now().Truncate(time.Minute)},
 		//				{ID: 2, Name: "item", Amount: 4, Date: time.Now().Truncate(time.Minute)},
@@ -229,7 +229,7 @@ func TestDetermineRemovableIndices(t *testing.T) {
 		//			},
 		//		},
 		//		"remove all except single and range": {
-		//			line: "* 7 1-3",
+		//			input: "* 7 1-3",
 		//			expected: []model.PantryItem{
 		//				{ID: 1, Name: "item", Amount: 1, Date: time.Now().Truncate(time.Minute)},
 		//				{ID: 2, Name: "item", Amount: 2, Date: time.Now().Truncate(time.Minute)},
@@ -242,7 +242,7 @@ func TestDetermineRemovableIndices(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := determineRemovableIndices(test.line)
+			actual := determineIndices(test.input)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)
@@ -253,31 +253,31 @@ func TestDetermineRemovableIndices(t *testing.T) {
 func TestGenerateNewPantryItem(t *testing.T) {
 	// where
 	tests := map[string]struct {
-		line     string
+		input    string
 		expected model.PantryItem
 	}{
 		"simple add": {
-			line:     "bacon",
+			input:    "bacon",
 			expected: model.PantryItem{Name: "bacon", Amount: 1, Date: time.Now().Truncate(time.Minute)},
 		},
 		"simple multi word add": {
-			line:     "butter scotch",
+			input:    "butter scotch",
 			expected: model.PantryItem{Name: "butter scotch", Amount: 1, Date: time.Now().Truncate(time.Minute)},
 		},
 		"simple hyphened add": {
-			line:     "dry-gin",
+			input:    "dry-gin",
 			expected: model.PantryItem{Name: "dry-gin", Amount: 1, Date: time.Now().Truncate(time.Minute)},
 		},
 		"add with trailing quantity": {
-			line:     "bacon 5",
+			input:    "bacon 5",
 			expected: model.PantryItem{Name: "bacon", Amount: 5, Date: time.Now().Truncate(time.Minute)},
 		},
 		"add with leading quantity": {
-			line:     "13 bacon",
+			input:    "13 bacon",
 			expected: model.PantryItem{Name: "bacon", Amount: 13, Date: time.Now().Truncate(time.Minute)},
 		},
 		"add with numbered name": {
-			line:     "2 monkey47",
+			input:    "2 monkey47",
 			expected: model.PantryItem{Name: "monkey47", Amount: 2, Date: time.Now().Truncate(time.Minute)},
 		},
 	}
@@ -285,7 +285,7 @@ func TestGenerateNewPantryItem(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			actual := generateNewPantryItem(test.line)
+			actual := generateNewPantryItem(test.input)
 
 			// then
 			assert.EqualValues(t, test.expected, actual)
