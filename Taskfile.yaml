@@ -42,7 +42,12 @@ tasks:
     desc: "Run current state as Docker container locally"
     deps:
       - build
-    cmd: docker run -d --rm --name {{.SERVICE}} {{.IMAGE}}
+    cmds:
+      - cp configs/prod.yaml configs/prod.yaml.bak
+      - sed -i 's/BOT_ID/{{.BOT_ID}}/g' configs/prod.yaml
+      - sed -i 's/BOT_TOKEN/{{.BOT_TOKEN}}/g' configs/prod.yaml
+      - docker run -d --rm --name {{.SERVICE}} {{.IMAGE}} prod
+      - mv configs/prod.yaml.bak configs/prod.yaml
 
   test:
     desc: "Test task"
