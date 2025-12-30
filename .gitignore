@@ -20,6 +20,8 @@ go.work
 .vscode
 .DS_Store
 
+# Local files
 .env
 TODOs.md
 *.db
+manage-sqlite.sh
