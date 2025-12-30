@@ -32,4 +32,4 @@ Track the inventory of my `groceries` and `freezer` Discord channels.
 
 - Use `📝 Edit` button to edit the entire inventory list via Modal
 - Edit quantity of single items
-  - Increase `4++` or lower `3--` quantity
+  - Increase `4++` | `4++<delta>` or lower `3--` | `3--<delta>` quantity
