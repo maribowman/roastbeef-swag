@@ -43,7 +43,7 @@ func (handler *FreezerHandler) MessageEvent(session *discordgo.Session, message 
 		return
 	}
 
-	if err := session.ChannelMessagesBulkDelete(message.ChannelID, removableMessageIDs); err != nil {
+	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
 		log.Error().Err(err).Msg("Could not bulk delete channel messages")
 	}
 

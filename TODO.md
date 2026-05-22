@@ -48,20 +48,9 @@ When picking up a task in a new session, say: *"work on task N from TODO.md"*.
 
 ---
 
-## Task 3 — Unify the channel-ID source in `FreezerHandler.MessageEvent`
+## ~~Task 3 — Unify the channel-ID source in `FreezerHandler.MessageEvent`~~ ✓ DONE
 
-**Goal:** Use `handler.channelID` (not `message.ChannelID`) in the freezer's bulk delete, matching the grocery handler.
-
-**Why:** `ReadyEvent` calls `MessageEvent` with a synthetic `discordgo.MessageCreate{Message: &discordgo.Message{Author: ...}}` that has an empty `ChannelID`. The freezer handler then calls `ChannelMessagesBulkDelete("", ...)` on startup, which errors. The grocery handler already uses `handler.channelID` and works.
-
-**Files:**
-- `app/service/freezer_handler.go:46`
-
-**Change:** Replace `message.ChannelID` with `handler.channelID`.
-
-**Acceptance:** Repro check (read-only): with the change applied, both handlers use `handler.channelID` everywhere. `grep "message.ChannelID" app/service/` returns nothing.
-
-**Out of scope:** The bigger handler-unification refactor (see Task 11).
+Switched `FreezerHandler.MessageEvent` to use `handler.channelID` for the bulk delete, matching the grocery handler.
 
 ---
 
