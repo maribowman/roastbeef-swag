@@ -7,29 +7,31 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type FreezerHandler struct {
+type PantryHandler struct {
 	channelID    string
 	pantryClient model.PantryClient
 	lineBreak    int
 	dateFormat   string
+	modalTitle   string
 }
 
-func NewFreezerHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int) model.BotHandler {
-	log.Debug().Msg("Registering TK handler")
-	return &FreezerHandler{
+func NewPantryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int, tableName, dateFormat, modalTitle string) model.BotHandler {
+	log.Debug().Msgf("Registering pantry handler for table `%s`", tableName)
+	return &PantryHandler{
 		channelID:    channelID,
-		pantryClient: repository.NewSqlitePantryClient(databaseClient, "freezer"),
+		pantryClient: repository.NewSqlitePantryClient(databaseClient, tableName),
 		lineBreak:    lineBreak,
-		dateFormat:   "02.01.06",
+		dateFormat:   dateFormat,
+		modalTitle:   modalTitle,
 	}
 }
 
-func (handler *FreezerHandler) ReadyEvent(session *discordgo.Session) (err error) {
+func (handler *PantryHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
 	return
 }
 
-func (handler *FreezerHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
+func (handler *PantryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
 	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
@@ -44,7 +46,7 @@ func (handler *FreezerHandler) MessageEvent(session *discordgo.Session, message 
 	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
 }
 
-func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.MessageComponentData().CustomID {
@@ -53,7 +55,7 @@ func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discord
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: EditModal,
-				Title:    "Edit TK list",
+				Title:    handler.modalTitle,
 				Components: []discordgo.MessageComponent{
 					discordgo.ActionsRow{
 						Components: []discordgo.MessageComponent{
@@ -69,7 +71,6 @@ func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discord
 			},
 		}
 	case UndoButton:
-		// handler.UseLatestSnapshot() // TODO: Implement snapshots
 		response = &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -81,10 +82,12 @@ func (handler *FreezerHandler) MessageComponentInteractionEvent(session *discord
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
 
-	_ = session.InteractionRespond(interaction.Interaction, response)
+	if err := session.InteractionRespond(interaction.Interaction, response); err != nil {
+		log.Error().Err(err).Msg("Failed to return interaction response")
+	}
 }
 
-func (handler *FreezerHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (handler *PantryHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	var response *discordgo.InteractionResponse
 
 	switch interaction.ModalSubmitData().CustomID {

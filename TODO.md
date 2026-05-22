@@ -162,32 +162,9 @@ Dropped `"int"` from the `slices.Contains` allowlist in `app/config/config.go:27
 
 ---
 
-## Task 11 — Collapse `GroceryHandler` and `FreezerHandler` into one type
+## ~~Task 11 — Collapse `GroceryHandler` and `FreezerHandler` into one type~~ ✓ DONE
 
-**Goal:** A single `PantryHandler` parameterized by `{tableName, dateFormat, modalTitle}` replaces both files.
-
-**Why:** The two files differ in ~5 string literals and one date format. The duplication is what caused Task 3 (drift between the two channel-ID usages). Removing it prevents future drift.
-
-**Files:**
-- `app/service/grocery_handler.go` — delete after migration.
-- `app/service/freezer_handler.go` — delete after migration.
-- New `app/service/pantry_handler.go` (or rename one of the above).
-- `app/service/discord_bot.go:26-36` — `NewDiscordBot` switch now constructs one type with different params.
-- `app/service/pantry_handling.go:16-18` — the `GroceriesChannel`/`FreezerChannel` constants stay; they're still used as routing keys.
-
-**Change:**
-- Define `PantryHandler` with fields `channelID`, `pantryClient`, `lineBreak`, `dateFormat`, `modalTitle`.
-- `NewPantryHandler(channelID string, db model.DatabaseClient, lineBreak int, tableName, dateFormat, modalTitle string)`.
-- Move both handlers' methods over verbatim (they're identical aside from the param-driven strings).
-
-**Acceptance:**
-- `go test ./...` passes.
-- `grep -r "GroceryHandler\|FreezerHandler" app/` returns nothing.
-- The Discord behavior is unchanged (manual smoke if possible).
-
-**Out of scope:** Changing the bot interface, snapshot/undo, modal UX changes. Do not pick this up if you're also doing Tasks 3 or 5 in the same PR — land those first, then this.
-
-**Pre-req:** Tasks 3 and 5 should be done first (so the diff is purely structural).
+Replaced both handlers with a single `PantryHandler` parameterized by `tableName`, `dateFormat`, and `modalTitle`. `app/service/grocery_handler.go` and `app/service/freezer_handler.go` were deleted; `app/service/pantry_handler.go` contains the unified type. `NewDiscordBot` now constructs one type with per-channel params.
 
 ---
 
