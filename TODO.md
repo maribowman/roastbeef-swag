@@ -183,21 +183,9 @@ Optional follow-up *within the same task*: replace the synthetic `MessageCreate`
 
 ---
 
-## Task 10 — Add a missing `int.yaml` config (or remove `int` from the allowlist)
+## ~~Task 10 — Add a missing `int.yaml` config (or remove `int` from the allowlist)~~ ✓ DONE
 
-**Goal:** Either `./roastbeef-swag int` works, or `int` is no longer a documented option.
-
-**Why:** `app/config/config.go:27` accepts `int` as a config target but no `configs/int.yaml` exists. Running with `int` calls `log.Fatal` on the missing file.
-
-**Files:**
-- `app/config/config.go:27`
-- `configs/` (new file or removal of `"int"` from the allowlist)
-
-**Change:** Decide with the user first (ask in the session). Likely the right move is to drop `int` from the allowlist since there's no integration environment. If kept, copy `prod.yaml` and adjust.
-
-**Acceptance:** Either `configs/int.yaml` exists and `./roastbeef-swag int` boots, or `int` is gone from `loadConfig`.
-
-**Out of scope:** Reworking the config loader, switching off YAML.
+Dropped `"int"` from the `slices.Contains` allowlist in `app/config/config.go:27`. No integration environment exists, so the option was removed.
 
 ---
 

@@ -24,7 +24,7 @@ type config struct {
 func loadConfig() config {
 	configFile := "local"
 	if len(os.Args[1:]) > 0 {
-		if slices.Contains([]string{"local", "int", "prod"}, os.Args[1]) {
+		if slices.Contains([]string{"local", "prod"}, os.Args[1]) {
 			configFile = os.Args[1]
 		} else if strings.Contains(os.Args[1], "test") {
 			configFile = "test"
