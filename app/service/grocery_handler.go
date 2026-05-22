@@ -26,13 +26,6 @@ func NewGroceryHandler(channelID string, databaseClient model.DatabaseClient, li
 
 func (handler *GroceryHandler) ReadyEvent(session *discordgo.Session) (err error) {
 	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	_, userInput, _, err := PreProcessMessageEvent(session, handler.channelID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to pre-process message events for Grocery handler")
-		return
-	}
-
-	UpdateItems(handler.pantryClient, userInput)
 	return
 }
 

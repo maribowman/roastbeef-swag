@@ -76,25 +76,9 @@ Switched `FreezerHandler.MessageEvent` to use `handler.channelID` for the bulk d
 
 ---
 
-## Task 5 — Stop double-processing in `ReadyEvent`
+## ~~Task 5 — Stop double-processing in `ReadyEvent`~~ ✓ DONE
 
-**Goal:** `ReadyEvent` should run the channel pre-process + update + publish exactly once on startup.
-
-**Why:** Currently `ReadyEvent` calls `handler.MessageEvent(...)` with a synthetic event (which already does the full pre-process / update / publish cycle), and then immediately calls `PreProcessMessageEvent` and `UpdateItems` again. The second pass is mostly seeing the bot's own freshly-published table and re-processing it. Wastes Discord API calls; racy if a user posts in the gap.
-
-**Files:**
-- `app/service/grocery_handler.go:27-37`
-- `app/service/freezer_handler.go:27-37`
-
-**Change:** Delete the second `PreProcessMessageEvent` + `UpdateItems` block. The single `MessageEvent` call (or a small dedicated startup function) is sufficient.
-
-Optional follow-up *within the same task*: replace the synthetic `MessageCreate` with a direct call to the underlying logic (extract the body of `MessageEvent` into a helper that takes only the session), so the fake `Author.ID == "init"` hack goes away. Only do this if the diff stays under ~30 lines per handler.
-
-**Acceptance:**
-- `go test ./...` passes.
-- `ReadyEvent` no longer constructs a `discordgo.MessageCreate` (if you took the optional cleanup).
-
-**Out of scope:** Merging the two handlers (Task 11). Snapshot/undo work.
+Removed the redundant second `PreProcessMessageEvent` + `UpdateItems` block from both handlers' `ReadyEvent`. The single `MessageEvent` call now runs the full pre-process / update / publish cycle once on startup. The optional synthetic-`MessageCreate` cleanup was skipped — replacing the `Author.ID == "init"` placeholder requires extracting `MessageEvent`'s body, which became unnecessary once Task 11 collapsed both handlers.
 
 ---
 
