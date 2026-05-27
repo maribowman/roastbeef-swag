@@ -125,13 +125,14 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 					updatedQuantity := item.Quantity + quantityDelta
 					if updatedQuantity <= 0 {
 						pantryClient.RemoveItem(item.ID)
+					} else {
+						pantryClient.UpdateItem(model.PantryItem{
+							ID:       item.ID,
+							Name:     item.Name,
+							Quantity: updatedQuantity,
+							Date:     item.Date,
+						})
 					}
-					pantryClient.UpdateItem(model.PantryItem{
-						ID:       item.ID,
-						Name:     item.Name,
-						Quantity: updatedQuantity,
-						Date:     item.Date,
-					})
 				}
 			}
 

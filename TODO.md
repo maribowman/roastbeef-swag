@@ -7,22 +7,9 @@ When picking up a task in a new session, say: *"work on task N from TODO.md"*.
 
 ---
 
-## Task 1 — Fix `UpdateItems` fall-through after `RemoveItem`
+## ~~Task 1 — Fix `UpdateItems` fall-through after `RemoveItem`~~ ✓ DONE
 
-**Goal:** When edit-quantity drops an item to ≤0, only remove it. Do not also update it with the non-positive quantity.
-
-**Why:** Silent correctness bug. The branch calls `RemoveItem` then falls straight into `UpdateItem` with `updatedQuantity ≤ 0`. The `UPDATE` no-ops because the row is gone, but the intent is clearly wrong and the next person reading this will mis-trust the code.
-
-**Files:**
-- `app/service/pantry_handling.go:124-135` (inside `UpdateItems`, the `editRegex.MatchString(line)` branch)
-
-**Change:** After `pantryClient.RemoveItem(item.ID)`, `continue` the inner loop (or restructure to `if/else`) so `UpdateItem` is not called for the removed row.
-
-**Acceptance:**
-- `go test ./...` still passes (the existing `"advanced negative quantity update exception"` case in `pantry_handling_test.go:122` covers this and currently passes by accident — confirm it still passes for the right reason).
-- Add one table-driven case where an edit reduces qty to 0 (e.g., `1--1` on a qty-1 item) and asserts the item is gone, no resurrected row.
-
-**Out of scope:** Refactoring the wider `UpdateItems` function, touching the regex, restructuring the loop.
+Restructured the `editRegex` branch in `UpdateItems` to `if/else` so `UpdateItem` is no longer called after `RemoveItem` when `updatedQuantity ≤ 0`. Added a `"quantity update to zero removes item"` test case (`1--1` on a qty-1 item) that asserts the row is gone — no resurrected row with `Quantity: 0`.
 
 ---
 

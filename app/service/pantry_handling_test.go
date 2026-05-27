@@ -124,6 +124,11 @@ func TestUpdateItems(t *testing.T) {
 			input:           "1--5",
 			expected:        nil,
 		},
+		"quantity update to zero removes item": {
+			pantryItemCount: 1,
+			input:           "1--1",
+			expected:        nil,
+		},
 
 		// REMOVE TEST CASES
 		"single number remove": {
