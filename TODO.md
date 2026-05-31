@@ -106,20 +106,13 @@ Both Discord-coupled functions now have pure, tested cores. The chunking logic w
 
 ---
 
-## Task 15 — Run CI on every push, not only tag pushes
+## ~~Task 15 — Run CI on every push, not only tag pushes~~ ✗ WON'T DO
 
-**Goal:** `.github/workflows/build.yml` runs tests (at minimum) on push to `main` and on PRs.
-
-**Why:** Today CI only runs on tag push. Test failures are only surfaced at release time. The Dockerfile builder runs `go test`, but that's expensive feedback compared to a regular CI run.
-
-**Files:**
-- `.github/workflows/build.yml:3-6`
-
-**Change:** Add a separate lightweight workflow (or extend the existing one) with `on: { push: { branches: [main] }, pull_request: {} }` that runs `go test ./...`. Leave the image build on tag-only.
-
-**Acceptance:** PRs and pushes to `main` show a green/red check based on `go test`.
-
-**Out of scope:** Adding lint, coverage upload, matrix builds, or release automation changes.
+Dismissed (2026-05-31). The value of a separate push/PR test workflow is catching failures
+before release and on others' PRs. This is a single-maintainer repo with no PR flow, and the
+Dockerfile builder already runs `go test ./... -cover -v` on every tag push (release),
+gating the image. The extra workflow adds little for this setup, so closing as won't-do
+rather than maintaining a CI file with no practical payoff.
 
 ---
 
