@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/maribowman/roastbeef-swag/app/repository"
 	"github.com/stretchr/testify/assert"
@@ -378,4 +379,85 @@ func TestSplitMarkdownTable(t *testing.T) {
 		chunks := splitMarkdownTable(smallTable, 2000)
 		assert.Equal(t, []string{smallTable}, chunks)
 	})
+}
+
+func TestPartitionChannelMessages(t *testing.T) {
+	// where
+	const botID = "bot"
+
+	base := time.Date(2026, 5, 31, 12, 0, 0, 0, time.UTC)
+	msg := func(id, authorID, content string, ageMinutes int) *discordgo.Message {
+		return &discordgo.Message{
+			ID:        id,
+			Author:    &discordgo.User{ID: authorID},
+			Content:   content,
+			Timestamp: base.Add(time.Duration(ageMinutes) * time.Minute),
+		}
+	}
+
+	tests := map[string]struct {
+		messages          []*discordgo.Message
+		expectedKeptID    string
+		expectedRemovable []string
+		expectedInput     string
+	}{
+		"keeps oldest bot message and removes the rest": {
+			// Discord returns newest first; the oldest bot message must be reused.
+			messages: []*discordgo.Message{
+				msg("bot-new", botID, "", 20),
+				msg("bot-mid", botID, "", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			expectedKeptID:    "bot-old",
+			expectedRemovable: []string{"bot-new", "bot-mid"},
+			expectedInput:     "",
+		},
+		"removes user messages and accumulates their input": {
+			messages: []*discordgo.Message{
+				msg("user-2", "alice", "milk", 30),
+				msg("bot-old", botID, "", 10),
+				msg("user-1", "bob", "eggs", 5),
+			},
+			expectedKeptID:    "bot-old",
+			expectedRemovable: []string{"user-2", "user-1"},
+			expectedInput:     "\nmilk\neggs",
+		},
+		"single bot message is kept with nothing removable": {
+			messages: []*discordgo.Message{
+				msg("bot-only", botID, "", 0),
+			},
+			expectedKeptID:    "bot-only",
+			expectedRemovable: nil,
+			expectedInput:     "",
+		},
+		"no bot message keeps nothing and removes all user messages": {
+			messages: []*discordgo.Message{
+				msg("user-1", "alice", "bread", 0),
+				msg("user-2", "bob", "butter", 5),
+			},
+			expectedKeptID:    "",
+			expectedRemovable: []string{"user-1", "user-2"},
+			expectedInput:     "\nbread\nbutter",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			keptID, input, removable := partitionChannelMessages(test.messages, botID)
+
+			// then
+			assert.Equal(t, test.expectedKeptID, keptID)
+			assert.Equal(t, test.expectedInput, input)
+			assert.Equal(t, test.expectedRemovable, removable)
+
+			// regression guard: every bot message except the kept one must be removed,
+			// so no stale "standing posts" can linger.
+			for _, m := range test.messages {
+				if m.Author.ID == botID && m.ID != keptID {
+					assert.Contains(t, removable, m.ID, "stale bot message must be removable")
+				}
+			}
+		})
+	}
 }

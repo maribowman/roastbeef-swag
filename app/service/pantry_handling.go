@@ -39,19 +39,23 @@ var (
 // It returns the message ID for the original bot Markdown table, the accumulated user input,
 // a list of message IDs (which can be dropped) and a potential error.
 func PreProcessMessageEvent(session *discordgo.Session, channelID string) (string, string, []string, error) {
-	var lastBotMessageID string
-	var userInput string
-	var removableMessageIDs []string
-
 	channelMessages, err := session.ChannelMessages(channelID, 100, "", "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get messages from Discord channel")
 		return "", "", nil, err
 	}
 
+	lastBotMessageID, userInput, removableMessageIDs := partitionChannelMessages(channelMessages, config.Config.Discord.BotID)
+	return lastBotMessageID, userInput, removableMessageIDs, nil
+}
+
+// partitionChannelMessages keeps the single oldest bot message (to be reused) and
+// marks every other message — bot or user — as removable. User message contents are
+// accumulated as raw input. Order-independent: selection is purely by timestamp.
+func partitionChannelMessages(messages []*discordgo.Message, botID string) (lastBotMessageID, userInput string, removableMessageIDs []string) {
 	var lastBotMessage *discordgo.Message
-	for _, msg := range channelMessages {
-		if msg.Author.ID == config.Config.Discord.BotID {
+	for _, msg := range messages {
+		if msg.Author.ID == botID {
 			if lastBotMessage == nil {
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
@@ -67,7 +71,7 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID string) (strin
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
-	return lastBotMessageID, userInput, removableMessageIDs, err
+	return lastBotMessageID, userInput, removableMessageIDs
 }
 
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {

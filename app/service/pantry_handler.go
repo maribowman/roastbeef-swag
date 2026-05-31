@@ -31,7 +31,15 @@ func (handler *PantryHandler) ReadyEvent(session *discordgo.Session) (err error)
 	return
 }
 
-func (handler *PantryHandler) MessageEvent(session *discordgo.Session, message *discordgo.MessageCreate) {
+func (handler *PantryHandler) MessageEvent(session *discordgo.Session, _ *discordgo.MessageCreate) {
+	handler.syncChannel(session)
+}
+
+// syncChannel is the single source of truth for cleaning up the channel and
+// re-publishing the latest pantry state. It reads the channel, deletes every message
+// except the one bot message to be reused, applies any pending user input, and
+// republishes — splitting across multiple messages when needed.
+func (handler *PantryHandler) syncChannel(session *discordgo.Session) {
 	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while processing message event")
@@ -47,11 +55,9 @@ func (handler *PantryHandler) MessageEvent(session *discordgo.Session, message *
 }
 
 func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	var response *discordgo.InteractionResponse
-
 	switch interaction.MessageComponentData().CustomID {
 	case EditButton:
-		response = &discordgo.InteractionResponse{
+		response := &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseModal,
 			Data: &discordgo.InteractionResponseData{
 				CustomID: EditModal,
@@ -70,42 +76,39 @@ func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordg
 				},
 			},
 		}
-	case UndoButton:
-		response = &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseUpdateMessage,
-			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
-				Components: CreateMessageButtons(),
-			},
+		if err := session.InteractionRespond(interaction.Interaction, response); err != nil {
+			log.Error().Err(err).Msg("Failed to return interaction response")
 		}
+	case UndoButton:
+		// Acknowledge without touching the source message, then republish through the
+		// shared flow so multi-message tables stay consistent.
+		if err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredMessageUpdate,
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to acknowledge interaction")
+		}
+		handler.syncChannel(session)
 	default:
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
-	}
-
-	if err := session.InteractionRespond(interaction.Interaction, response); err != nil {
-		log.Error().Err(err).Msg("Failed to return interaction response")
 	}
 }
 
 func (handler *PantryHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	var response *discordgo.InteractionResponse
-
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
 		UpdateItemsFromModal(
 			handler.pantryClient,
 			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
 		)
-		response = &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseUpdateMessage,
-			Data: &discordgo.InteractionResponseData{
-				Content:    model.ToMarkdownTable(handler.pantryClient.GetItems(), handler.lineBreak, handler.dateFormat),
-				Components: CreateMessageButtons(),
-			},
+		// Acknowledge the modal, then republish through the shared flow so multi-message
+		// tables stay consistent and never exceed the 2000-character message limit.
+		if err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredMessageUpdate,
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to acknowledge interaction")
 		}
+		handler.syncChannel(session)
 	default:
 		log.Error().Msgf("Could not map modal-submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
 	}
-
-	_ = session.InteractionRespond(interaction.Interaction, response)
 }
