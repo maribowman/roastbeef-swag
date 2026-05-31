@@ -24,6 +24,9 @@ const (
 )
 
 var (
+	// now is the clock used for item timestamps; overridable in tests.
+	now = time.Now
+
 	// Prefix for modal items
 	modalIndexPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 	// Routing Regexes
@@ -247,7 +250,7 @@ func generateNewPantryItem(input string) model.PantryItem {
 	return model.PantryItem{
 		Name:     matches[2],
 		Quantity: quantity,
-		Date:     time.Now().Truncate(time.Minute),
+		Date:     now().Truncate(time.Minute),
 	}
 }
 

@@ -84,38 +84,19 @@ Replaced both handlers with a single `PantryHandler` parameterized by `tableName
 
 ---
 
-## Task 12 — Allowlist the SQLite table name in `SqlitePantryClient`
+## ~~Task 12 — Allowlist the SQLite table name in `SqlitePantryClient`~~ ✗ WON'T DO
 
-**Goal:** Reject table names that aren't in a known-good set, since they're interpolated into SQL via `fmt.Sprintf`.
-
-**Why:** Today only `groceries`, `freezer`, and `unit_tests` are passed in, so this is a defense-in-depth task, not an exploitable vuln. But interpolating arbitrary strings into DDL is a footgun.
-
-**Files:**
-- `app/repository/sqlite_pantry_client.go:17-24` (`NewSqlitePantryClient`)
-
-**Change:** Add a constant `var allowedTableNames = map[string]bool{"groceries": true, "freezer": true, "unit_tests": true}` and `log.Fatal` (or return an error) if `tableName` isn't in the set.
-
-**Acceptance:** Constructor rejects unknown table names; existing tests still pass.
-
-**Out of scope:** Switching to a query builder, parameterized DDL (not supported by SQLite for identifiers anyway), or schema migrations.
+Dismissed (2026-05-31). The table name is always internally controlled — it comes only
+from the static `configs/*.yaml` channel list (`groceries`, `freezer`) and the hardcoded
+`unit_tests` in tests; it is never derived from user input. The interpolated-DDL path is
+therefore not reachable by an attacker, so the allowlist adds no practical protection.
+Closing as won't-do rather than adding defense-in-depth code with no reachable threat.
 
 ---
 
-## Task 13 — Make `time.Now()` in tests stable
+## ~~Task 13 — Make `time.Now()` in tests stable~~ ✓ DONE
 
-**Goal:** Service tests should not depend on the wall clock.
-
-**Why:** `app/service/pantry_handling_test.go` compares structs containing `Date: time.Now().Truncate(time.Minute)` between the expected and actual values. If the test crosses a minute boundary, `time.Now()` in expected and `time.Now()` in `generateNewPantryItem` will differ.
-
-**Files:**
-- `app/service/pantry_handling.go:223-242` (`generateNewPantryItem`) and `:113-167` (`UpdateItems` adds via this).
-- `app/service/pantry_handling_test.go`
-
-**Change:** Introduce a package-level `var now = time.Now` (lowercase — internal). Use `now()` in `generateNewPantryItem`. In tests, override with `now = func() time.Time { return fixed }` in a `t.Cleanup` that restores it.
-
-**Acceptance:** Tests pass when run repeatedly; no `time.Now()` calls in the production add path.
-
-**Out of scope:** Introducing a `Clock` interface, dependency injection, or anything beyond the package-private var.
+Introduced a package-private clock indirection `var now = time.Now` in `app/service/pantry_handling.go` and switched `generateNewPantryItem` to `now().Truncate(time.Minute)` (the only `time.Now()` in the service add path — confirmed via grep). In `app/service/pantry_handling_test.go`, replaced every `time.Now().Truncate(time.Minute)` date literal with `now().Truncate(time.Minute)`, and froze the clock at the top of `TestUpdateItemsFromModal` and `TestUpdateItems` (`fixed := time.Now(); now = func() time.Time { return fixed }`) with a `t.Cleanup(func() { now = time.Now })` restore. `fixed` is left un-truncated on purpose — both production and the literals call `now().Truncate(...)`, so they truncate the same instant to the same minute regardless of evaluation order. Verified with `go test ./app/service/... -count=20` (no flakes), full suite, and `go vet` all clean.
 
 ---
 
