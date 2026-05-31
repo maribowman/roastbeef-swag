@@ -41,24 +41,9 @@ Removed the redundant second `PreProcessMessageEvent` + `UpdateItems` block from
 
 ---
 
-## Task 6 — Guard `defer stmt.Close()` against nil statements
+## ~~Task 6 — Guard `defer stmt.Close()` against nil statements~~ ✓ DONE
 
-**Goal:** Stop the SQLite repository from panicking when `db.Prepare` returns an error.
-
-**Why:** Every `Prepare` call in `sqlite_pantry_client.go` logs on error but still proceeds to `defer stmt.Close()`. If `stmt` is nil, the deferred call panics (`*sql.Stmt.Close` on a nil receiver dereferences `s.cg`). Today this only fires if SQLite itself errors on prepare, which is rare but observable on schema drift or closed connections.
-
-**Files:**
-- `app/repository/sqlite_pantry_client.go:50-60` (`UpdateItem`)
-- `app/repository/sqlite_pantry_client.go:62-72` (`RemoveItem`)
-- `app/repository/sqlite_pantry_client.go:74-95` (`RemoveAllItems`)
-- `app/repository/sqlite_pantry_client.go:97-124` (`GetItems`)
-- `app/repository/sqlite_pantry_client.go:33-48` (`AddItem`) — already returns on prepare error; double-check.
-
-**Change:** On `Prepare` error, `return` (or `return zero, err` for `AddItem`/`GetItems`) before the `defer`. Matches the existing `AddItem` pattern.
-
-**Acceptance:** All `Prepare` call sites either return immediately on error or guard the defer.
-
-**Out of scope:** Changing the SQL itself, switching to `sqlx`, or introducing transactions.
+Added a `return` to the `Prepare`-error branch of `UpdateItem`, `RemoveItem`, and both `Prepare` calls in `RemoveAllItems` (`app/repository/sqlite_pantry_client.go`), so a failed prepare (which returns a nil `*sql.Stmt`) never reaches `defer stmt.Close()` and panics on a nil receiver. `AddItem` and `GetItems` already returned on prepare error — left unchanged. The `RemoveAllItems` variable-reuse cleanup remains for Task 7 (not bundled); the added early return is safe because `defer stmt.Close()` binds its receiver value when the defer executes.
 
 ---
 

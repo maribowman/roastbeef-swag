@@ -51,6 +51,7 @@ func (client *SqlitePantryClient) UpdateItem(item model.PantryItem) {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("update %s set name=?, quantity=? where id=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare update statement on table %s", client.tableName)
+		return
 	}
 	defer stmt.Close()
 
@@ -63,6 +64,7 @@ func (client *SqlitePantryClient) RemoveItem(id int) {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("delete from %s where id=?;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare delete statement on table %s", client.tableName)
+		return
 	}
 	defer stmt.Close()
 
@@ -76,6 +78,7 @@ func (client *SqlitePantryClient) RemoveAllItems() {
 	stmt, err := client.sqlite.Prepare(fmt.Sprintf("delete from %s;", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare delete all statement on table %s", client.tableName)
+		return
 	}
 	defer stmt.Close()
 
@@ -86,6 +89,7 @@ func (client *SqlitePantryClient) RemoveAllItems() {
 	stmt, err = client.sqlite.Prepare(fmt.Sprintf("delete from sqlite_sequence where name='%s';", client.tableName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to prepare reset sequence statement on table %s", client.tableName)
+		return
 	}
 	defer stmt.Close()
 
