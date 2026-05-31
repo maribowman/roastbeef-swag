@@ -66,20 +66,9 @@ Guarded the index in the `len(matches) == 2` branch of `UpdateItemsFromModal` (`
 
 ---
 
-## Task 9 — Fix `UpdateItemsFromModal` `updatedItems` slice initialization
+## ~~Task 9 — Fix `UpdateItemsFromModal` `updatedItems` slice initialization~~ ✓ DONE
 
-**Goal:** `updatedItems` should be a zero-length, pre-allocated slice — not a slice of `len(items)` zeros that we then `append` to.
-
-**Why:** `make([]int, len(items))` allocates N zeros; the subsequent `append` adds beyond those. `slices.Contains` still works only because `0` happens not to collide with valid 1-based indices. Confusing; will bite when someone adds 0-based logic.
-
-**Files:**
-- `app/service/pantry_handling.go:75`
-
-**Change:** `updatedItems := make([]int, 0, len(items))`.
-
-**Acceptance:** `go test ./...` passes (existing tests cover this path).
-
-**Out of scope:** Anything else in this function (see Task 8 for the bounds check).
+Changed `updatedItems := make([]int, len(items))` to `make([]int, 0, len(items))` in `UpdateItemsFromModal` (`app/service/pantry_handling.go`). The old form pre-filled the slice with `len(items)` zeros and then appended the real 1-based indices on top, so the slice held `[0, …, 0, realIndex₁, …]`; the removal pass only worked because `slices.Contains(updatedItems, index+1)` always looks up `index+1 ≥ 1`, which never collides with the spurious zeros. The new form is zero-length with the capacity reserved, so it holds only genuinely-updated indices and no longer relies on "0 never matches." Behavior is identical — the existing table-driven `TestUpdateItemsFromModal` cases cover the path; `go vet` and `go test ./...` clean.
 
 ---
 

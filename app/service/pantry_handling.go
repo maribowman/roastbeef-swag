@@ -76,7 +76,7 @@ func partitionChannelMessages(messages []*discordgo.Message, botID string) (last
 
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 	items := pantryClient.GetItems()
-	updatedItems := make([]int, len(items))
+	updatedItems := make([]int, 0, len(items))
 
 	for line := range strings.Lines(modalInput) {
 		if len(strings.TrimSpace(line)) == 0 {
