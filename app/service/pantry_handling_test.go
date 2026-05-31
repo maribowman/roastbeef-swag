@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -316,4 +317,65 @@ func TestUpdateItems(t *testing.T) {
 			pantryClient.RemoveAllItems()
 		})
 	}
+}
+
+func TestSplitMarkdownTable(t *testing.T) {
+	// where
+	const open = "```md\n"
+	const close = "```"
+
+	body := func(table string) string {
+		return strings.TrimSuffix(strings.TrimPrefix(table, open), close)
+	}
+
+	smallTable := open + "| 1 | milk | 1 |\n" + close
+	largeTable := open
+	for i := 1; i <= 20; i++ {
+		largeTable += fmt.Sprintf("| %d | item-%d | %d |\n", i, i, i)
+	}
+	largeTable += close
+
+	tests := map[string]struct {
+		table     string
+		max       int
+		minChunks int
+	}{
+		"single chunk when within limit": {
+			table:     smallTable,
+			max:       2000,
+			minChunks: 1,
+		},
+		"splits into multiple chunks when over limit": {
+			table:     largeTable,
+			max:       80,
+			minChunks: 2,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// when
+			chunks := splitMarkdownTable(test.table, test.max)
+
+			// then
+			assert.GreaterOrEqual(t, len(chunks), test.minChunks)
+
+			var rejoined string
+			for _, chunk := range chunks {
+				assert.LessOrEqual(t, len(chunk), test.max)
+				assert.True(t, strings.HasPrefix(chunk, open), "chunk must open a code block")
+				assert.True(t, strings.HasSuffix(chunk, close), "chunk must close a code block")
+				assert.NotContains(t, chunk, "...", "no truncation marker should remain")
+				rejoined += body(chunk)
+			}
+
+			// no rows dropped: rejoined chunk bodies reproduce the original table body
+			assert.Equal(t, body(test.table), rejoined)
+		})
+	}
+
+	t.Run("single chunk equals input", func(t *testing.T) {
+		chunks := splitMarkdownTable(smallTable, 2000)
+		assert.Equal(t, []string{smallTable}, chunks)
+	})
 }

@@ -13,25 +13,9 @@ Restructured the `editRegex` branch in `UpdateItems` to `if/else` so `UpdateItem
 
 ---
 
-## Task 2 — Fix `PublishItems` dropping the tail of long tables
+## ~~Task 2 — Fix `PublishItems` dropping the tail of long tables~~ ✓ DONE
 
-**Goal:** When the markdown table exceeds 2000 chars, send all chunks instead of only the first.
-
-**Why:** Silent data loss. The "split" branch sends/edits one chunk then `return`s inside the loop, so any rows beyond ~1980 chars are never published. Also the chunk currently appends `...```` to the body even when the table fits a single chunk on the split path.
-
-**Files:**
-- `app/service/pantry_handling.go:247-292` (`PublishItems`)
-
-**Change:**
-- Rework the split branch to iterate all chunks: edit the first chunk into `messageID` (if non-empty), then send the remaining chunks as new messages. Only the final chunk should carry the action buttons (`CreateMessageButtons()`).
-- Remove the `...```` truncation marker (or only append it if a chunk was actually truncated mid-line — which shouldn't happen if you split on line boundaries).
-- Make sure each chunk re-opens with ` ```md ` and closes with ` ``` ` so Discord renders the code block.
-
-**Acceptance:**
-- Add a unit test for a helper that splits a markdown table string into ≤2000-char chunks on line boundaries (extract the chunking logic so it can be tested without a Discord session).
-- Manual smoke (or note in the PR) that a list with 60+ items still renders fully.
-
-**Out of scope:** Adding pagination buttons, persisting message IDs across multi-message tables, supporting >10 chunks.
+Extracted the chunking into a pure `splitMarkdownTable(table string, max int) []string` helper that splits the fenced `` ```md `` table on line boundaries, re-wrapping every chunk as its own code block. Reworked the split branch in `PublishItems` to iterate **all** chunks (edit the first into `messageID`, send the rest as new messages) instead of sending one chunk and `return`ing — fixing the silent tail-drop. Dropped the bogus `...``` ` truncation marker; the action buttons now ride only on the final chunk (and are cleared from the edited first chunk when it isn't last). Header repeats only on the first chunk (per decision). Added `TestSplitMarkdownTable` asserting no rows are dropped, every chunk is ≤ max and properly fenced, and no truncation marker remains.
 
 ---
 

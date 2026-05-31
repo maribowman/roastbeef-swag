@@ -264,32 +264,58 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 			}
 		}
 	} else { // Split table line by line
-		tempTable := ""
+		chunks := splitMarkdownTable(markdownTable, 2000)
 
-		for line := range strings.Lines(markdownTable) {
-			if len(tempTable)+len(line) <= 1980 {
-				tempTable += line + "\n"
-				continue
-			}
-			tempTable += "...```"
+		for i, chunk := range chunks {
+			isLast := i == len(chunks)-1
 
-			if messageID != "" {
+			if i == 0 && messageID != "" { // Edit the existing bot message into the first chunk
 				editedMessage := discordgo.NewMessageEdit(channelID, messageID)
-				editedMessage.SetContent(tempTable)
+				editedMessage.SetContent(chunk)
+				if !isLast {
+					// Buttons only belong on the final message, so clear them here.
+					editedMessage.Components = &[]discordgo.MessageComponent{}
+				}
 				if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 					log.Error().Err(err).Msgf("Could not edit message %s", messageID)
 				}
-			} else {
-				if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-					Content:    tempTable,
-					Components: CreateMessageButtons(),
-				}); err != nil {
-					log.Error().Err(err).Msg("Could not send complex message")
-				}
+				continue
 			}
-			return
+
+			message := &discordgo.MessageSend{Content: chunk}
+			if isLast {
+				message.Components = CreateMessageButtons()
+			}
+			if _, err := session.ChannelMessageSendComplex(channelID, message); err != nil {
+				log.Error().Err(err).Msg("Could not send complex message")
+			}
 		}
 	}
+}
+
+// splitMarkdownTable breaks a fenced ```md table into chunks no larger than max
+// characters, splitting only on line boundaries. Each returned chunk is itself a
+// valid ```md code block. The column header only appears in the first chunk.
+func splitMarkdownTable(table string, max int) []string {
+	const open = "```md\n"
+	const close = "```"
+
+	body := strings.TrimPrefix(table, open)
+	body = strings.TrimSuffix(body, close)
+
+	var chunks []string
+	current := ""
+	for line := range strings.Lines(body) {
+		if current != "" && len(open)+len(current)+len(line)+len(close) > max {
+			chunks = append(chunks, open+current+close)
+			current = ""
+		}
+		current += line
+	}
+	if current != "" {
+		chunks = append(chunks, open+current+close)
+	}
+	return chunks
 }
 
 // CreateMessageButtons generates the necessary buttons for the bots Markdown table message
