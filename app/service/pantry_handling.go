@@ -90,6 +90,11 @@ func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 		if len(matches) == 2 { // Regex matches full string + capture group
 			// Update pantry item with name and amount from modal input
 			index, _ := strconv.Atoi(matches[1])
+			if index < 1 || index > len(items) {
+				log.Debug().Msgf("Modal index %d is out of range (have %d items); adding line as a new item", index, len(items))
+				pantryClient.AddItem(modalItem)
+				continue
+			}
 			item := items[index-1]
 			updatedItem := model.PantryItem{
 				ID:       item.ID,

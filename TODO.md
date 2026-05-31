@@ -47,39 +47,22 @@ Added a `return` to the `Prepare`-error branch of `UpdateItem`, `RemoveItem`, an
 
 ---
 
-## Task 7 — Fix `RemoveAllItems` double-defer / leaked statement
+## ~~Task 7 — Fix `RemoveAllItems` double-defer / leaked statement~~ ✗ INVALID (no bug)
 
-**Goal:** Both prepared statements in `RemoveAllItems` are closed exactly once.
-
-**Why:** The function prepares two statements but reuses the `stmt` variable. The first `defer stmt.Close()` captures the variable, not the value, so at function return both defers close the *second* statement. The first statement leaks until the connection closes.
-
-**Files:**
-- `app/repository/sqlite_pantry_client.go:74-95`
-
-**Change:** Use two distinct variable names (e.g., `deleteStmt`, `resetStmt`), or scope each prepare/exec in its own function. Each statement gets its own `defer`.
-
-**Acceptance:** `go vet ./...` clean; visual confirmation that each statement has its own `defer` bound to its own variable.
-
-**Out of scope:** Switching to `Exec` directly without `Prepare` (functionally equivalent here and would be a tiny improvement, but keep this task minimal).
+**Verified during the Task 8 planning pass (2026-05-31):** the premise is wrong. `defer
+stmt.Close()` is a *method value* whose receiver is evaluated **when the `defer` statement
+executes** (Go spec: "the expression x is evaluated and saved during the evaluation of the
+method value"). So the first `defer` captures the first statement's value and the second
+`defer` captures the second — reassigning the `stmt` variable does **not** redirect the
+earlier defer. There is no double-close and no leak; both statements are closed exactly
+once. The only residual is a stylistic variable-reuse footgun, which is not the described
+bug — closing this task as a non-issue rather than implementing a fix.
 
 ---
 
-## Task 8 — Bounds-check the modal index in `UpdateItemsFromModal`
+## ~~Task 8 — Bounds-check the modal index in `UpdateItemsFromModal`~~ ✓ DONE
 
-**Goal:** Submitting `[99]` on a 3-item list should not panic.
-
-**Why:** `items[index-1]` at `pantry_handling.go:91` panics out of range. The Discord interaction goroutine then dies silently — no error returned to the user, no recovery.
-
-**Files:**
-- `app/service/pantry_handling.go:73-111` (`UpdateItemsFromModal`)
-
-**Change:** When the parsed `index` is `< 1` or `> len(items)`, treat the line as a new item (i.e., fall through to the `else` add path). Log a debug line so the behavior is discoverable.
-
-**Acceptance:**
-- Add a test case: 1 existing item, modal input `[5] foo` → result has the original item plus `foo` as a new item.
-- `go test ./...` passes.
-
-**Out of scope:** Returning a user-visible error message via Discord, reworking the modal protocol, fixing the `slices.Contains` initialization (Task 9).
+Guarded the index in the `len(matches) == 2` branch of `UpdateItemsFromModal` (`app/service/pantry_handling.go`): when the parsed `[N]` is `< 1` or `> len(items)`, the line is logged at debug and added as a new item (`AddItem` + `continue`) instead of indexing `items[index-1]` out of range and panicking the interaction goroutine. Added the `"out-of-range modal index adds a new item"` test case (`modalInput: "[1] milk\n[5] foo"` → original `milk` preserved + `foo` added). Used `[1] milk\n[5] foo` rather than the TODO's literal `[5] foo` because a lone `[5] foo` omits the valid index and would (correctly) remove the unreferenced original — the two-line input matches the TODO's stated intent of "original plus foo".
 
 ---
 

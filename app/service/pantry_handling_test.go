@@ -73,6 +73,16 @@ func TestUpdateItemsFromModal(t *testing.T) {
 				{ID: 1, Name: "eggs", Quantity: 2, Date: time.Now().Truncate(time.Minute)},
 			},
 		},
+		"out-of-range modal index adds a new item": {
+			pantryItems: []model.PantryItem{
+				{Name: "milk", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+			modalInput: "[1] milk\n[5] foo",
+			expected: []model.PantryItem{
+				{ID: 1, Name: "milk", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+				{ID: 2, Name: "foo", Quantity: 1, Date: time.Now().Truncate(time.Minute)},
+			},
+		},
 	}
 
 	// given
