@@ -25,25 +25,13 @@ Switched `FreezerHandler.MessageEvent` to use `handler.channelID` for the bulk d
 
 ---
 
-## Task 4 — Move the Discord bot token out of the image
+## ~~Task 4 — Move the Discord bot token out of the image~~ ✓ DONE
 
-**Goal:** Stop baking `BOT_TOKEN` / `BOT_ID` into `configs/prod.yaml` at build time. Read them from runtime env vars instead.
+Stopped baking secrets into the image. Removed the `sed` injection + `git restore` from the `build` task (`Taskfile.yaml`) and deleted the "Inject bot token" step from `.github/workflows/build.yml`, so the published image now ships `configs/prod.yaml` with only the literal `BOT_TOKEN`/`BOT_ID` placeholders. Reworked `loadAndReplaceFromDotEnv` (`app/config/config.go`) to treat `.env` as an optional local-dev convenience and always read `BOT_TOKEN`/`BOT_ID` from the process environment, overriding the YAML only when a value is set (non-empty guards keep `go test` unaffected). The `run` task passes `-e BOT_TOKEN -e BOT_ID` through to `docker run`.
 
-**Why:** Anyone with pull access to `ghcr.io/maribowman/roastbeef-swag` currently has the production bot token. The `sed` substitution in `Taskfile.yaml` and `.github/workflows/build.yml` writes secrets into a file that the Dockerfile `COPY /configs /configs` ships in the final image layer.
+**Deployment follow-ups (user action):** the Synology NAS run must now supply `-e BOT_TOKEN`/`-e BOT_ID`, and the existing bot token should be **rotated** (it shipped inside published GHCR layers) along with purging old images.
 
-**Files:**
-- `Taskfile.yaml:23-24, 27` — remove the `sed` lines and the `git restore`.
-- `.github/workflows/build.yml:29-32` — remove the "Inject bot token" step.
-- `app/config/config.go:73-82` (`loadAndReplaceFromDotEnv`) — read `BOT_TOKEN` / `BOT_ID` from `os.Getenv` unconditionally (not only when `.env` exists). Keep `.env` loading for local dev convenience.
-- `configs/prod.yaml:10-11` — leave the placeholder values; they will be overwritten by env at runtime.
-- `Taskfile.yaml: run` task — pass `-e BOT_TOKEN -e BOT_ID` to `docker run` so the local run still works.
-
-**Acceptance:**
-- `docker build` produces an image where `grep -r '<your real token>' /configs` returns nothing.
-- Running the image with `docker run -e BOT_TOKEN=... -e BOT_ID=... <image> prod` still connects.
-- Old images on GHCR should be rotated (note this in the PR description — the user does that, not Claude).
-
-**Out of scope:** Switching to Docker secrets, vault, or any external secret manager. Just env vars.
+**Out of scope (unchanged):** Docker secrets, vault, or any external secret manager. Just env vars.
 
 ---
 
@@ -174,24 +162,9 @@ Replaced both handlers with a single `PantryHandler` parameterized by `tableName
 
 ---
 
-## Task 14 — Add unit tests for `PreProcessMessageEvent` and the chunking logic in `PublishItems`
+## ~~Task 14 — Add unit tests for `PreProcessMessageEvent` and the chunking logic in `PublishItems`~~ ✓ DONE
 
-**Goal:** Cover the two most Discord-coupled functions that currently have zero tests.
-
-**Why:** These functions hold most of the bug surface (Tasks 2, 3, 5 all touch them). Tests would have caught the tail-drop bug.
-
-**Files:**
-- `app/service/pantry_handling.go` — extract the chunking inside `PublishItems` into a pure helper (e.g., `splitMarkdownTable(table string, max int) []string`) that takes a string and returns chunks. The Discord-sending part stays untestable without a fake session, but the splitting logic is pure.
-- `app/service/pantry_handling_test.go` — add tests for `splitMarkdownTable`.
-- For `PreProcessMessageEvent`: extract the message-classification logic (which messages are bot/user/removable) into a pure function over `[]*discordgo.Message` so it can be tested without a session.
-
-**Acceptance:**
-- New tests pass.
-- `go test ./... -cover` shows non-zero coverage on the extracted helpers.
-
-**Out of scope:** Mocking `discordgo.Session`. The point is to extract enough pure logic to test, not to build a full Discord fake.
-
-**Pre-req:** Task 2 should land first so the chunking helper already exists in its fixed form.
+Both Discord-coupled functions now have pure, tested cores. The chunking logic was extracted into `splitMarkdownTable(table string, max int) []string` with `TestSplitMarkdownTable` (landed with Task 2). The message-classification logic was extracted out of `PreProcessMessageEvent` into a pure `partitionChannelMessages(messages []*discordgo.Message, botID string) (lastBotMessageID, userInput string, removableMessageIDs []string)` helper, covered by `TestPartitionChannelMessages` (keeps the oldest bot message, marks every other message removable, accumulates user input). The Discord-sending/fetching parts remain untested by design (no session fake).
 
 ---
 

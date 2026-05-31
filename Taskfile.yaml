@@ -20,11 +20,8 @@ tasks:
   build:
     desc: "Build Docker image"
     cmds:
-      - sed -i 's/BOT_ID/{{.BOT_ID}}/g' configs/prod.yaml
-      - sed -i 's/BOT_TOKEN/{{.BOT_TOKEN}}/g' configs/prod.yaml
       - docker build -q -t "{{.IMAGE}}" -t "{{.NAME}}:latest" .
       - docker image prune -f --filter label=stage=builder > /dev/null
-      - git restore configs/prod.yaml
 
   push:
     desc: "Push Docker image to remote registry"
@@ -45,7 +42,7 @@ tasks:
     desc: "Run current state as Docker container locally"
     deps:
       - build
-    cmd: docker run -d --rm --name {{.SERVICE}} {{.IMAGE}} prod
+    cmd: docker run -d --rm --name {{.SERVICE}} -e BOT_TOKEN -e BOT_ID {{.IMAGE}} prod
 
   test:
     desc: "Test task"
