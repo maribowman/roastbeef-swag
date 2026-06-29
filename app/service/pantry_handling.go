@@ -24,6 +24,9 @@ const (
 )
 
 var (
+	// now is the clock used for item timestamps; overridable in tests.
+	now = time.Now
+
 	// Prefix for modal items
 	modalIndexPrefixRegex = regexp.MustCompile(`^\[(\d+)]\s`)
 	// Routing Regexes
@@ -39,19 +42,23 @@ var (
 // It returns the message ID for the original bot Markdown table, the accumulated user input,
 // a list of message IDs (which can be dropped) and a potential error.
 func PreProcessMessageEvent(session *discordgo.Session, channelID string) (string, string, []string, error) {
-	var lastBotMessageID string
-	var userInput string
-	var removableMessageIDs []string
-
 	channelMessages, err := session.ChannelMessages(channelID, 100, "", "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get messages from Discord channel")
 		return "", "", nil, err
 	}
 
+	lastBotMessageID, userInput, removableMessageIDs := partitionChannelMessages(channelMessages, config.Config.Discord.BotID)
+	return lastBotMessageID, userInput, removableMessageIDs, nil
+}
+
+// partitionChannelMessages keeps the single oldest bot message (to be reused) and
+// marks every other message — bot or user — as removable. User message contents are
+// accumulated as raw input. Order-independent: selection is purely by timestamp.
+func partitionChannelMessages(messages []*discordgo.Message, botID string) (lastBotMessageID, userInput string, removableMessageIDs []string) {
 	var lastBotMessage *discordgo.Message
-	for _, msg := range channelMessages {
-		if msg.Author.ID == config.Config.Discord.BotID {
+	for _, msg := range messages {
+		if msg.Author.ID == botID {
 			if lastBotMessage == nil {
 				lastBotMessage = msg
 				lastBotMessageID = msg.ID
@@ -67,12 +74,12 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID string) (strin
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
-	return lastBotMessageID, userInput, removableMessageIDs, err
+	return lastBotMessageID, userInput, removableMessageIDs
 }
 
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 	items := pantryClient.GetItems()
-	updatedItems := make([]int, len(items))
+	updatedItems := make([]int, 0, len(items))
 
 	for line := range strings.Lines(modalInput) {
 		if len(strings.TrimSpace(line)) == 0 {
@@ -86,6 +93,11 @@ func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 		if len(matches) == 2 { // Regex matches full string + capture group
 			// Update pantry item with name and amount from modal input
 			index, _ := strconv.Atoi(matches[1])
+			if index < 1 || index > len(items) {
+				log.Debug().Msgf("Modal index %d is out of range (have %d items); adding line as a new item", index, len(items))
+				pantryClient.AddItem(modalItem)
+				continue
+			}
 			item := items[index-1]
 			updatedItem := model.PantryItem{
 				ID:       item.ID,
@@ -125,13 +137,14 @@ func UpdateItems(pantryClient model.PantryClient, userInput string) {
 					updatedQuantity := item.Quantity + quantityDelta
 					if updatedQuantity <= 0 {
 						pantryClient.RemoveItem(item.ID)
+					} else {
+						pantryClient.UpdateItem(model.PantryItem{
+							ID:       item.ID,
+							Name:     item.Name,
+							Quantity: updatedQuantity,
+							Date:     item.Date,
+						})
 					}
-					pantryClient.UpdateItem(model.PantryItem{
-						ID:       item.ID,
-						Name:     item.Name,
-						Quantity: updatedQuantity,
-						Date:     item.Date,
-					})
 				}
 			}
 
@@ -237,7 +250,7 @@ func generateNewPantryItem(input string) model.PantryItem {
 	return model.PantryItem{
 		Name:     matches[2],
 		Quantity: quantity,
-		Date:     time.Now().Truncate(time.Minute),
+		Date:     now().Truncate(time.Minute),
 	}
 }
 
@@ -263,32 +276,58 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 			}
 		}
 	} else { // Split table line by line
-		tempTable := ""
+		chunks := splitMarkdownTable(markdownTable, 2000)
 
-		for line := range strings.Lines(markdownTable) {
-			if len(tempTable)+len(line) <= 1980 {
-				tempTable += line + "\n"
-				continue
-			}
-			tempTable += "...```"
+		for i, chunk := range chunks {
+			isLast := i == len(chunks)-1
 
-			if messageID != "" {
+			if i == 0 && messageID != "" { // Edit the existing bot message into the first chunk
 				editedMessage := discordgo.NewMessageEdit(channelID, messageID)
-				editedMessage.SetContent(tempTable)
+				editedMessage.SetContent(chunk)
+				if !isLast {
+					// Buttons only belong on the final message, so clear them here.
+					editedMessage.Components = &[]discordgo.MessageComponent{}
+				}
 				if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 					log.Error().Err(err).Msgf("Could not edit message %s", messageID)
 				}
-			} else {
-				if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-					Content:    tempTable,
-					Components: CreateMessageButtons(),
-				}); err != nil {
-					log.Error().Err(err).Msg("Could not send complex message")
-				}
+				continue
 			}
-			return
+
+			message := &discordgo.MessageSend{Content: chunk}
+			if isLast {
+				message.Components = CreateMessageButtons()
+			}
+			if _, err := session.ChannelMessageSendComplex(channelID, message); err != nil {
+				log.Error().Err(err).Msg("Could not send complex message")
+			}
 		}
 	}
+}
+
+// splitMarkdownTable breaks a fenced ```md table into chunks no larger than max
+// characters, splitting only on line boundaries. Each returned chunk is itself a
+// valid ```md code block. The column header only appears in the first chunk.
+func splitMarkdownTable(table string, max int) []string {
+	const open = "```md\n"
+	const close = "```"
+
+	body := strings.TrimPrefix(table, open)
+	body = strings.TrimSuffix(body, close)
+
+	var chunks []string
+	current := ""
+	for line := range strings.Lines(body) {
+		if current != "" && len(open)+len(current)+len(line)+len(close) > max {
+			chunks = append(chunks, open+current+close)
+			current = ""
+		}
+		current += line
+	}
+	if current != "" {
+		chunks = append(chunks, open+current+close)
+	}
+	return chunks
 }
 
 // CreateMessageButtons generates the necessary buttons for the bots Markdown table message

@@ -24,7 +24,7 @@ type config struct {
 func loadConfig() config {
 	configFile := "local"
 	if len(os.Args[1:]) > 0 {
-		if slices.Contains([]string{"local", "int", "prod"}, os.Args[1]) {
+		if slices.Contains([]string{"local", "prod"}, os.Args[1]) {
 			configFile = os.Args[1]
 		} else if strings.Contains(os.Args[1], "test") {
 			configFile = "test"
@@ -71,12 +71,16 @@ func getProjectRoot() string {
 }
 
 func loadAndReplaceFromDotEnv(config *config) {
+	// .env is an optional local-dev convenience; in prod the variables come
+	// straight from the container environment.
 	if err := godotenv.Load(); err != nil {
-		log.Info().Msg("No .env file found, skipping overwrite")
-		return
+		log.Debug().Msg("No .env file found, relying on existing environment")
 	}
 
-	log.Info().Msg("Found .env file -> overwriting configs")
-	config.Discord.Token = os.Getenv("BOT_TOKEN")
-	config.Discord.BotID = os.Getenv("BOT_ID")
+	if token := os.Getenv("BOT_TOKEN"); token != "" {
+		config.Discord.Token = token
+	}
+	if botID := os.Getenv("BOT_ID"); botID != "" {
+		config.Discord.BotID = botID
+	}
 }
