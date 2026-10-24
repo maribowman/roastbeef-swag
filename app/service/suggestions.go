@@ -95,6 +95,20 @@ func isSuggestionMessage(msg *discordgo.Message) bool {
 	return false
 }
 
+// PublishSuggestions sends one message with 👍/👎 buttons per suggestion. The author is
+// mentioned but not pinged. A failed send is logged and that suggestion is dropped.
+func PublishSuggestions(suggestions []suggestion, session *discordgo.Session, channelID string) {
+	for _, s := range suggestions {
+		if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
+			Content:         formatSuggestion(generateNewPantryItem(s.Text), s.AuthorID),
+			Components:      createSuggestionButtons(),
+			AllowedMentions: &discordgo.MessageAllowedMentions{},
+		}); err != nil {
+			log.Error().Err(err).Msgf("Could not send suggestion %q on channel `%s`; dropping it", s.Text, channelID)
+		}
+	}
+}
+
 // createSuggestionButtons generates the accept and deny buttons for a suggestion message
 func createSuggestionButtons() []discordgo.MessageComponent {
 	return []discordgo.MessageComponent{

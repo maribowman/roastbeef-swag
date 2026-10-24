@@ -415,11 +415,25 @@ func TestPartitionChannelMessages(t *testing.T) {
 		}
 	}
 
+	// suggestionMsg mimics a suggestion message as returned by Discord (pointer components).
+	suggestionMsg := func(id, content string, ageMinutes int) *discordgo.Message {
+		m := msg(id, botID, content, ageMinutes)
+		m.Components = []discordgo.MessageComponent{
+			&discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+				&discordgo.Button{CustomID: SuggestionAcceptButton},
+				&discordgo.Button{CustomID: SuggestionDenyButton},
+			}},
+		}
+		return m
+	}
+
 	tests := map[string]struct {
-		messages          []*discordgo.Message
-		expectedKeptID    string
-		expectedRemovable []string
-		expectedInput     string
+		messages            []*discordgo.Message
+		suggestionsEnabled  bool
+		expectedKeptID      string
+		expectedRemovable   []string
+		expectedInput       string
+		expectedSuggestions []suggestion
 	}{
 		"keeps oldest bot message and removes the rest": {
 			// Discord returns newest first; the oldest bot message must be reused.
@@ -492,21 +506,96 @@ func TestPartitionChannelMessages(t *testing.T) {
 			expectedRemovable: []string{"10", "9"},
 			expectedInput:     "butter\n1--",
 		},
+		"suggestion messages are neither kept nor removable": {
+			messages: []*discordgo.Message{
+				suggestionMsg("sugg-2", "💡 Suggestion: 1 jam", 30),
+				msg("user-1", "alice", "eggs", 25),
+				suggestionMsg("sugg-1", "💡 Suggestion: 2 milk", 20),
+				msg("bot-new", botID, "", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			suggestionsEnabled: true,
+			expectedKeptID:     "bot-old",
+			expectedRemovable:  []string{"user-1", "bot-new"},
+			expectedInput:      "eggs",
+		},
+		"suggestion older than the table is not picked as the table": {
+			// e.g. the table was deleted by hand and republished below an open suggestion
+			messages: []*discordgo.Message{
+				msg("bot-table", botID, "", 10),
+				suggestionMsg("sugg-old", "💡 Suggestion: 2 milk", 0),
+			},
+			suggestionsEnabled: true,
+			expectedKeptID:     "bot-table",
+			expectedRemovable:  nil,
+			expectedInput:      "",
+		},
+		"only suggestion messages keep nothing and remove nothing": {
+			messages: []*discordgo.Message{
+				suggestionMsg("sugg-1", "💡 Suggestion: 2 milk", 0),
+			},
+			suggestionsEnabled: true,
+			expectedKeptID:     "",
+			expectedRemovable:  nil,
+			expectedInput:      "",
+		},
+		"suggestion lines are split off per message with their author, oldest first": {
+			messages: []*discordgo.Message{
+				msg("user-2", "bob", "? jam\n2", 20),
+				msg("user-1", "alice", "eggs\n? 2 milk\n?butter", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			suggestionsEnabled: true,
+			expectedKeptID:     "bot-old",
+			expectedRemovable:  []string{"user-2", "user-1"},
+			expectedInput:      "eggs\n2",
+			expectedSuggestions: []suggestion{
+				{Text: "2 milk", AuthorID: "alice"},
+				{Text: "butter", AuthorID: "alice"},
+				{Text: "jam", AuthorID: "bob"},
+			},
+		},
+		"suggestion-only message adds no input": {
+			messages: []*discordgo.Message{
+				msg("user-1", "alice", "? 2 milk", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			suggestionsEnabled:  true,
+			expectedKeptID:      "bot-old",
+			expectedRemovable:   []string{"user-1"},
+			expectedInput:       "",
+			expectedSuggestions: []suggestion{{Text: "2 milk", AuthorID: "alice"}},
+		},
+		"suggestion lines stay input when suggestions are disabled": {
+			messages: []*discordgo.Message{
+				msg("user-1", "alice", "? fish", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			suggestionsEnabled: false,
+			expectedKeptID:     "bot-old",
+			expectedRemovable:  []string{"user-1"},
+			expectedInput:      "? fish",
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// when
-			keptID, input, removable := partitionChannelMessages(test.messages, botID)
+			keptID, input, removable, suggestions := partitionChannelMessages(test.messages, botID, test.suggestionsEnabled)
 
 			// then
 			assert.Equal(t, test.expectedKeptID, keptID)
 			assert.Equal(t, test.expectedInput, input)
 			assert.Equal(t, test.expectedRemovable, removable)
+			assert.Equal(t, test.expectedSuggestions, suggestions)
 
-			// regression guard: every bot message except the kept one must be removed,
-			// so no stale "standing posts" can linger.
+			// regression guard: every bot message except the kept one and open
+			// suggestions must be removed, so no stale "standing posts" can linger.
 			for _, m := range test.messages {
+				if isSuggestionMessage(m) {
+					assert.NotContains(t, removable, m.ID, "suggestion message must survive the sync")
+					continue
+				}
 				if m.Author.ID == botID && m.ID != keptID {
 					assert.Contains(t, removable, m.ID, "stale bot message must be removable")
 				}
@@ -606,6 +695,66 @@ func TestUndoLastAction(t *testing.T) {
 
 			// then
 			assert.EqualValues(t, test.expected, pantryClient.GetItems())
+		})
+	}
+}
+
+func TestApplySuggestion(t *testing.T) {
+	// freeze the clock so production and expected timestamps share one instant
+	fixed := time.Now()
+	now = func() time.Time { return fixed }
+	t.Cleanup(func() { now = time.Now })
+
+	today := now().Truncate(time.Minute)
+	yesterday := today.Add(-24 * time.Hour)
+	initialList := []model.PantryItem{
+		{ID: 1, Name: "eggs", Quantity: 6, Date: yesterday},
+	}
+
+	// where
+	tests := map[string]struct {
+		suggestion        string
+		expectedAfterAdd  []model.PantryItem
+		expectedAfterUndo []model.PantryItem
+	}{
+		"leading quantity is added": {
+			suggestion: "2 milk",
+			expectedAfterAdd: []model.PantryItem{
+				{ID: 1, Name: "eggs", Quantity: 6, Date: yesterday},
+				{ID: 2, Name: "milk", Quantity: 2, Date: today},
+			},
+			expectedAfterUndo: initialList,
+		},
+		"name without quantity defaults to 1": {
+			suggestion: "oat milk",
+			expectedAfterAdd: []model.PantryItem{
+				{ID: 1, Name: "eggs", Quantity: 6, Date: yesterday},
+				{ID: 2, Name: "oat milk", Quantity: 1, Date: today},
+			},
+			expectedAfterUndo: initialList,
+		},
+	}
+
+	// TestUndoLastAction uses undo_tests_1..n, so start high to keep snapshots apart
+	tableIndex := 100
+	for name, test := range tests {
+		tableIndex++
+		t.Run(name, func(t *testing.T) {
+			// given
+			pantryClient := repository.NewSqlitePantryClient(repository.NewDatabaseClient(), fmt.Sprintf("undo_tests_%d", tableIndex))
+			pantryClient.AddItem(model.PantryItem{Name: "eggs", Quantity: 6, Date: yesterday})
+
+			// when
+			ApplySuggestion(pantryClient, test.suggestion)
+
+			// then
+			assert.EqualValues(t, test.expectedAfterAdd, pantryClient.GetItems())
+
+			// when: undo, mirroring the UndoButton action
+			pantryClient.RestoreSnapshot()
+
+			// then
+			assert.EqualValues(t, test.expectedAfterUndo, pantryClient.GetItems())
 		})
 	}
 }

@@ -22,16 +22,19 @@ type PantryHandler struct {
 	lineBreak    int
 	dateFormat   string
 	modalTitle   string
+	// suggestionsEnabled turns `?` lines into suggestion messages instead of items.
+	suggestionsEnabled bool
 }
 
-func NewPantryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int, tableName, dateFormat, modalTitle string) model.BotHandler {
+func NewPantryHandler(channelID string, databaseClient model.DatabaseClient, lineBreak int, tableName, dateFormat, modalTitle string, suggestionsEnabled bool) model.BotHandler {
 	log.Debug().Msgf("Registering pantry handler for table `%s`", tableName)
 	return &PantryHandler{
-		channelID:    channelID,
-		pantryClient: repository.NewSqlitePantryClient(databaseClient, tableName),
-		lineBreak:    lineBreak,
-		dateFormat:   dateFormat,
-		modalTitle:   modalTitle,
+		channelID:          channelID,
+		pantryClient:       repository.NewSqlitePantryClient(databaseClient, tableName),
+		lineBreak:          lineBreak,
+		dateFormat:         dateFormat,
+		modalTitle:         modalTitle,
+		suggestionsEnabled: suggestionsEnabled,
 	}
 }
 
@@ -49,20 +52,21 @@ func (handler *PantryHandler) MessageEvent(session *discordgo.Session, _ *discor
 // re-publishing the latest pantry state. Under the per-channel lock it reads the
 // channel, deletes every message except the one bot message to be reused, runs the
 // optional action, applies any pending user input, and republishes — splitting
-// across multiple messages when needed. If reading or deleting fails, it returns
+// across multiple messages when needed — followed by one message per new suggestion.
+// Open suggestion messages are left alone. If reading or deleting fails, it returns
 // before mutating anything.
 func (handler *PantryHandler) syncChannel(session *discordgo.Session, action func()) error {
 	handler.mu.Lock()
 	defer handler.mu.Unlock()
 
-	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
+	lastBotMessageID, userInput, removableMessageIDs, suggestions, err := PreProcessMessageEvent(session, handler.channelID, handler.suggestionsEnabled)
 	if err != nil {
 		return fmt.Errorf("could not read channel messages: %w", err)
 	}
 
 	if err := deleteMessages(session, handler.channelID, removableMessageIDs); err != nil {
-		if strings.TrimSpace(userInput) != "" {
-			log.Warn().Msgf("Discarding user input on channel `%s` after failed delete: %q", handler.channelID, userInput)
+		if strings.TrimSpace(userInput) != "" || len(suggestions) > 0 {
+			log.Warn().Msgf("Discarding user input on channel `%s` after failed delete: %q (and %d suggestions: %+v)", handler.channelID, userInput, len(suggestions), suggestions)
 		}
 		return fmt.Errorf("could not delete channel messages: %w", err)
 	}
@@ -76,6 +80,7 @@ func (handler *PantryHandler) syncChannel(session *discordgo.Session, action fun
 	}
 
 	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
+	PublishSuggestions(suggestions, session, handler.channelID)
 	return nil
 }
 
@@ -151,6 +156,41 @@ func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordg
 			}
 		}); err != nil {
 			log.Error().Err(err).Msgf("Could not sync channel `%s` on undo", handler.channelID)
+		}
+	case SuggestionAcceptButton:
+		if err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredMessageUpdate,
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to acknowledge interaction")
+		}
+		// Delete first, add second, both under the channel lock: if the delete fails
+		// (e.g. a concurrent click already took the suggestion), the add is skipped,
+		// so the item is added exactly once.
+		if err := handler.syncChannel(session, func() {
+			text, ok := parseSuggestion(interaction.Message.Content)
+			if !ok {
+				log.Error().Msgf("Could not parse suggestion message `%s`: %q", interaction.Message.ID, interaction.Message.Content)
+				return
+			}
+			if err := session.ChannelMessageDelete(handler.channelID, interaction.Message.ID); err != nil {
+				log.Warn().Err(err).Msgf("Could not delete suggestion message `%s`; skipping add", interaction.Message.ID)
+				return
+			}
+			ApplySuggestion(handler.pantryClient, text)
+		}); err != nil {
+			log.Error().Err(err).Msgf("Could not sync channel `%s` on suggestion accept", handler.channelID)
+		}
+	case SuggestionDenyButton:
+		if err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseDeferredMessageUpdate,
+		}); err != nil {
+			log.Error().Err(err).Msg("Failed to acknowledge interaction")
+		}
+		// Rejecting changes no items, so only the suggestion message is deleted, no sync.
+		handler.mu.Lock()
+		defer handler.mu.Unlock()
+		if err := session.ChannelMessageDelete(handler.channelID, interaction.Message.ID); err != nil {
+			log.Warn().Err(err).Msgf("Could not delete suggestion message `%s`", interaction.Message.ID)
 		}
 	default:
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
