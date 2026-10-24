@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,7 +44,23 @@ func loadConfig() config {
 	}
 
 	loadAndReplaceFromDotEnv(&config)
+	if configFile != "test" {
+		if err := validateDiscordConfig(config.Discord); err != nil {
+			log.Fatal().Err(err).Msg("Invalid discord config")
+		}
+	}
 	return config
+}
+
+func validateDiscordConfig(discordConfig DiscordConfig) error {
+	var errs []error
+	if discordConfig.Token == "" || discordConfig.Token == "BOT_TOKEN" {
+		errs = append(errs, errors.New("discord token is missing: set the BOT_TOKEN env var"))
+	}
+	if discordConfig.BotID == "" || discordConfig.BotID == "BOT_ID" {
+		errs = append(errs, errors.New("discord bot ID is missing: set the BOT_ID env var"))
+	}
+	return errors.Join(errs...)
 }
 
 func getConfigPath() string {
