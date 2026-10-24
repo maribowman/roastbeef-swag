@@ -22,7 +22,20 @@ func (m *MockPantryClient) RemoveItem(id int) {
 	m.Called(id)
 }
 
+func (m *MockPantryClient) RemoveAllItems() {
+	m.Called()
+}
+
 func (m *MockPantryClient) GetItems() []model.PantryItem {
 	args := m.Called()
 	return args.Get(0).([]model.PantryItem)
+}
+
+func (m *MockPantryClient) CreateSnapshot() {
+	m.Called()
+}
+
+func (m *MockPantryClient) RestoreSnapshot() bool {
+	args := m.Called()
+	return args.Bool(0)
 }
