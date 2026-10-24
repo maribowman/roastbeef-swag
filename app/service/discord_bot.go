@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	"sync"
-	"time"
+	"sync/atomic"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/config"
@@ -52,9 +52,12 @@ func NewDiscordBot(databaseClient model.DatabaseClient) model.DiscordBot {
 	return &bot
 }
 
+// Ready initializes every handler concurrently. Discord also fires Ready on
+// reconnects, so this never terminates the process: each handler logs its own
+// failure, and the result is summarized once all handlers have finished.
 func (bot *DiscordBot) Ready(session *discordgo.Session, _ *discordgo.Ready) {
 	var waitGroup sync.WaitGroup
-	errorChannel := make(chan error, len(bot.handlers))
+	var failed atomic.Int32
 
 	for channelID, handler := range bot.handlers {
 		waitGroup.Add(1)
@@ -62,38 +65,21 @@ func (bot *DiscordBot) Ready(session *discordgo.Session, _ *discordgo.Ready) {
 		go func(channelID string, handler model.BotHandler) {
 			defer waitGroup.Done()
 
-			timeout := time.After(5 * time.Second)
-			done := make(chan bool, 1)
-
-			go func() {
-				if err := handler.ReadyEvent(session); err != nil {
-					errorChannel <- fmt.Errorf("failed to initialize handler on channel %s: %w", channelID, err)
-				}
-				done <- true
-			}()
-
-			select {
-			case <-timeout:
-				errorChannel <- fmt.Errorf("handler initialization on channel  %s timed out", channelID)
-			case <-done:
-				log.Info().Msgf("Initialized handler on channel %s", channelID)
+			if err := handler.ReadyEvent(session); err != nil {
+				failed.Add(1)
+				log.Error().Err(err).Msgf("Failed to initialize handler on channel `%s`", channelID)
+				return
 			}
+			log.Info().Msgf("Initialized handler on channel `%s`", channelID)
 		}(channelID, handler)
 	}
 
 	waitGroup.Wait()
-	close(errorChannel)
 
-	var hasErrors bool
-	for err := range errorChannel {
-		hasErrors = true
-		log.Error().Err(err).Msg("Handler initialization failed")
+	if n := failed.Load(); n > 0 {
+		log.Error().Msgf("%d of %d handlers failed to initialize", n, len(bot.handlers))
+		return
 	}
-
-	if hasErrors {
-		log.Fatal().Msg("Failed to initialize all handlers -> crashing bot!")
-	}
-
 	log.Info().Msg("All handlers initialized, bot is up and running!")
 }
 

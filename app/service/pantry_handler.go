@@ -1,6 +1,11 @@
 package service
 
 import (
+	"errors"
+	"fmt"
+	"strings"
+	"sync"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/maribowman/roastbeef-swag/app/model"
 	"github.com/maribowman/roastbeef-swag/app/repository"
@@ -8,6 +13,10 @@ import (
 )
 
 type PantryHandler struct {
+	// mu serializes syncs on this channel. discordgo runs every event handler in its
+	// own goroutine, so without it two syncs could read the same user messages and
+	// apply them twice.
+	mu           sync.Mutex
 	channelID    string
 	pantryClient model.PantryClient
 	lineBreak    int
@@ -26,32 +35,81 @@ func NewPantryHandler(channelID string, databaseClient model.DatabaseClient, lin
 	}
 }
 
-func (handler *PantryHandler) ReadyEvent(session *discordgo.Session) (err error) {
-	handler.MessageEvent(session, &discordgo.MessageCreate{Message: &discordgo.Message{Author: &discordgo.User{ID: "init"}}})
-	return
+func (handler *PantryHandler) ReadyEvent(session *discordgo.Session) error {
+	return handler.syncChannel(session, nil)
 }
 
 func (handler *PantryHandler) MessageEvent(session *discordgo.Session, _ *discordgo.MessageCreate) {
-	handler.syncChannel(session)
+	if err := handler.syncChannel(session, nil); err != nil {
+		log.Error().Err(err).Msgf("Could not sync channel `%s` on message event", handler.channelID)
+	}
 }
 
 // syncChannel is the single source of truth for cleaning up the channel and
-// re-publishing the latest pantry state. It reads the channel, deletes every message
-// except the one bot message to be reused, applies any pending user input, and
-// republishes — splitting across multiple messages when needed.
-func (handler *PantryHandler) syncChannel(session *discordgo.Session) {
+// re-publishing the latest pantry state. Under the per-channel lock it reads the
+// channel, deletes every message except the one bot message to be reused, runs the
+// optional action, applies any pending user input, and republishes — splitting
+// across multiple messages when needed. If reading or deleting fails, it returns
+// before mutating anything.
+func (handler *PantryHandler) syncChannel(session *discordgo.Session, action func()) error {
+	handler.mu.Lock()
+	defer handler.mu.Unlock()
+
 	lastBotMessageID, userInput, removableMessageIDs, err := PreProcessMessageEvent(session, handler.channelID)
 	if err != nil {
-		log.Error().Err(err).Msg("Error while processing message event")
-		return
+		return fmt.Errorf("could not read channel messages: %w", err)
 	}
 
-	if err := session.ChannelMessagesBulkDelete(handler.channelID, removableMessageIDs); err != nil {
-		log.Error().Err(err).Msg("Could not bulk delete channel messages")
+	if err := deleteMessages(session, handler.channelID, removableMessageIDs); err != nil {
+		if strings.TrimSpace(userInput) != "" {
+			log.Warn().Msgf("Discarding user input on channel `%s` after failed delete: %q", handler.channelID, userInput)
+		}
+		return fmt.Errorf("could not delete channel messages: %w", err)
 	}
 
-	UpdateItems(handler.pantryClient, userInput)
+	if action != nil {
+		action()
+	}
+
+	if strings.TrimSpace(userInput) != "" {
+		// snapshot hook (wave 2)
+		UpdateItems(handler.pantryClient, userInput)
+	}
+
 	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
+	return nil
+}
+
+// deleteMessages removes the given messages from the channel. It tries a bulk delete
+// first and, if that fails (e.g. rate limit, or messages older than 14 days, which
+// bulk delete rejects), falls back to deleting each message on its own.
+//
+// If any individual delete still fails, an error is returned and the caller aborts
+// the sync without applying the input. Trade-off: input from messages that were
+// already deleted in the fallback is lost (and logged by the caller) rather than
+// being re-applied on every later sync because the messages stay in the channel.
+func deleteMessages(session *discordgo.Session, channelID string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	bulkErr := session.ChannelMessagesBulkDelete(channelID, ids)
+	if bulkErr == nil {
+		return nil
+	}
+	log.Error().Err(bulkErr).Msgf("Could not bulk delete %d messages on channel `%s`; deleting one by one", len(ids), channelID)
+
+	var errs []error
+	for _, id := range ids {
+		if err := session.ChannelMessageDelete(channelID, id); err != nil {
+			log.Error().Err(err).Msgf("Could not delete message `%s` on channel `%s`", id, channelID)
+			errs = append(errs, fmt.Errorf("message %s: %w", id, err))
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to delete %d of %d messages: %w", len(errs), len(ids), errors.Join(errs...))
+	}
+	return nil
 }
 
 func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -87,7 +145,9 @@ func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordg
 		}); err != nil {
 			log.Error().Err(err).Msg("Failed to acknowledge interaction")
 		}
-		handler.syncChannel(session)
+		if err := handler.syncChannel(session, nil); err != nil {
+			log.Error().Err(err).Msgf("Could not sync channel `%s` on undo", handler.channelID)
+		}
 	default:
 		log.Error().Msgf("Could not map message component interaction event `%s`", interaction.MessageComponentData().CustomID)
 	}
@@ -96,18 +156,21 @@ func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordg
 func (handler *PantryHandler) ModalSubmitInteractionEvent(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	switch interaction.ModalSubmitData().CustomID {
 	case EditModal:
-		UpdateItemsFromModal(
-			handler.pantryClient,
-			interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value,
-		)
-		// Acknowledge the modal, then republish through the shared flow so multi-message
-		// tables stay consistent and never exceed the 2000-character message limit.
+		modalInput := interaction.ModalSubmitData().Components[0].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
+		// Acknowledge first: Discord requires a response within 3 seconds, and the sync
+		// below may wait on the channel lock.
 		if err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseDeferredMessageUpdate,
 		}); err != nil {
 			log.Error().Err(err).Msg("Failed to acknowledge interaction")
 		}
-		handler.syncChannel(session)
+		// Apply the modal under the channel lock, then republish through the shared flow
+		// so multi-message tables stay consistent and never exceed the 2000-character limit.
+		if err := handler.syncChannel(session, func() {
+			UpdateItemsFromModal(handler.pantryClient, modalInput)
+		}); err != nil {
+			log.Error().Err(err).Msgf("Could not sync channel `%s` on modal submit", handler.channelID)
+		}
 	default:
 		log.Error().Msgf("Could not map modal-submit interaction event `%s`", interaction.ModalSubmitData().CustomID)
 	}
