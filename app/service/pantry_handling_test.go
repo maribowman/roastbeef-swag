@@ -440,7 +440,7 @@ func TestPartitionChannelMessages(t *testing.T) {
 			},
 			expectedKeptID:    "bot-old",
 			expectedRemovable: []string{"user-2", "user-1"},
-			expectedInput:     "\nmilk\neggs",
+			expectedInput:     "eggs\nmilk",
 		},
 		"single bot message is kept with nothing removable": {
 			messages: []*discordgo.Message{
@@ -457,7 +457,40 @@ func TestPartitionChannelMessages(t *testing.T) {
 			},
 			expectedKeptID:    "",
 			expectedRemovable: []string{"user-1", "user-2"},
-			expectedInput:     "\nbread\nbutter",
+			expectedInput:     "bread\nbutter",
+		},
+		"newest-first user input is applied oldest first": {
+			// ChannelMessages returns newest first: `1--` was sent after `butter`.
+			messages: []*discordgo.Message{
+				msg("user-2", "alice", "1--", 10),
+				msg("bot-old", botID, "", 0),
+				msg("user-1", "alice", "butter", 5),
+			},
+			expectedKeptID:    "bot-old",
+			expectedRemovable: []string{"user-2", "user-1"},
+			expectedInput:     "butter\n1--",
+		},
+		"three user messages are ordered oldest first": {
+			messages: []*discordgo.Message{
+				msg("user-3", "alice", "2", 30),
+				msg("user-2", "bob", "3", 20),
+				msg("user-1", "alice", "milk", 10),
+				msg("bot-old", botID, "", 0),
+			},
+			expectedKeptID:    "bot-old",
+			expectedRemovable: []string{"user-3", "user-2", "user-1"},
+			expectedInput:     "milk\n3\n2",
+		},
+		"equal timestamps fall back to numeric snowflake ID order": {
+			// "10" < "9" as plain strings, but snowflake 9 was created first.
+			messages: []*discordgo.Message{
+				msg("10", "alice", "1--", 5),
+				msg("9", "alice", "butter", 5),
+				msg("8", botID, "", 0),
+			},
+			expectedKeptID:    "8",
+			expectedRemovable: []string{"10", "9"},
+			expectedInput:     "butter\n1--",
 		},
 	}
 

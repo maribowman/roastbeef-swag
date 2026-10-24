@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cmp"
 	"regexp"
 	"slices"
 	"strconv"
@@ -54,9 +55,11 @@ func PreProcessMessageEvent(session *discordgo.Session, channelID string) (strin
 
 // partitionChannelMessages keeps the single oldest bot message (to be reused) and
 // marks every other message — bot or user — as removable. User message contents are
-// accumulated as raw input. Order-independent: selection is purely by timestamp.
+// accumulated as raw input, oldest first, so batched commands run in the order they were sent.
+// Order-independent: selection and input order are purely by timestamp (then snowflake ID).
 func partitionChannelMessages(messages []*discordgo.Message, botID string) (lastBotMessageID, userInput string, removableMessageIDs []string) {
 	var lastBotMessage *discordgo.Message
+	var userMessages []*discordgo.Message
 	for _, msg := range messages {
 		if msg.Author.ID == botID {
 			if lastBotMessage == nil {
@@ -70,11 +73,31 @@ func partitionChannelMessages(messages []*discordgo.Message, botID string) (last
 				continue
 			}
 		} else {
-			userInput += "\n" + msg.Content
+			userMessages = append(userMessages, msg)
 		}
 		removableMessageIDs = append(removableMessageIDs, msg.ID)
 	}
+
+	slices.SortStableFunc(userMessages, compareMessagesChronologically)
+	contents := make([]string, 0, len(userMessages))
+	for _, msg := range userMessages {
+		contents = append(contents, msg.Content)
+	}
+	userInput = strings.Join(contents, "\n")
+
 	return lastBotMessageID, userInput, removableMessageIDs
+}
+
+// compareMessagesChronologically orders messages by Timestamp, then by snowflake ID.
+// Snowflakes are numeric strings, so they are compared by length first, then lexicographically.
+func compareMessagesChronologically(a, b *discordgo.Message) int {
+	if c := a.Timestamp.Compare(b.Timestamp); c != 0 {
+		return c
+	}
+	if c := cmp.Compare(len(a.ID), len(b.ID)); c != 0 {
+		return c
+	}
+	return strings.Compare(a.ID, b.ID)
 }
 
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
@@ -264,12 +287,15 @@ func PublishItems(items []model.PantryItem, session *discordgo.Session, channelI
 		if messageID != "" { // Update existing message
 			editedMessage := discordgo.NewMessageEdit(channelID, messageID)
 			editedMessage.SetContent(markdownTable)
+			// Always restore the buttons: a reused message may have had them cleared in the split path.
+			components := CreateMessageButtons()
+			editedMessage.Components = &components
 			if _, err := session.ChannelMessageEditComplex(editedMessage); err != nil {
 				log.Error().Err(err).Msgf("Could not edit message %s", messageID)
 			}
 		} else {
 			if _, err := session.ChannelMessageSendComplex(channelID, &discordgo.MessageSend{
-				Content:    model.ToMarkdownTable(items, lineBreak, dateFormat),
+				Content:    markdownTable,
 				Components: CreateMessageButtons(),
 			}); err != nil {
 				log.Error().Err(err).Msg("Could not send complex message")
