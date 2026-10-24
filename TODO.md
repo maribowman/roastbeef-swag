@@ -116,6 +116,81 @@ rather than maintaining a CI file with no practical payoff.
 
 ---
 
+# Follow-up review (2026-10-24)
+
+Findings from a second review of `claude-review` vs `main`, fixed in two waves of parallel work packages. Task numbers continue from above; the original finding number is given in each title.
+
+---
+
+## ~~Task 16 — Serialize concurrent `syncChannel` runs (finding #1)~~ ✓ DONE
+
+Added `mu sync.Mutex` to `PantryHandler` (`app/service/pantry_handler.go`) and held it for the whole `syncChannel` call. discordgo runs every handler in its own goroutine, so two quick messages (or a message plus an Edit/Undo click) could both read the same user input before either deleted it and apply it twice. `syncChannel` now takes `(session, action func()) error`; `MessageEvent`, `ReadyEvent`, the modal submit and the Undo button all go through it, so every mutation runs under the per-channel lock. The modal submit sends its deferred response first, inside Discord's 3 s window, and only then waits on the lock.
+
+---
+
+## ~~Task 17 — Abort the sync when deleting messages fails (finding #2)~~ ✓ DONE
+
+Added `deleteMessages(session, channelID, ids) error` (`app/service/pantry_handler.go`): it tries `ChannelMessagesBulkDelete` and, on error, falls back to `ChannelMessageDelete` per message (which also covers messages older than 14 days, which bulk delete rejects). `syncChannel` deletes **before** applying any input and returns the error, without mutating anything, if any message still can't be deleted. Previously a failed bulk delete was only logged, so the same user messages were re-applied on every sync. Trade-off (documented in the code): input from messages already deleted in the fallback is logged and dropped instead of being re-applied forever.
+
+---
+
+## ~~Task 18 — Keep the Edit/Undo buttons when the table shrinks to one message (finding #3)~~ ✓ DONE
+
+The single-message **edit** path in `PublishItems` (`app/service/pantry_handling.go`) now always sets `Components` to `CreateMessageButtons()`. Before, a message reused from the split path kept its cleared components, and the last chunk holding the buttons was deleted, so the buttons were gone for good. One-line fix, verified by review (no session fake).
+
+---
+
+## ~~Task 19 — Fix the slice panic and UTF-8 splitting in `processItemMarkdownLayout` (finding #4)~~ ✓ DONE
+
+Reworked the name wrapping in `app/model/pantry.go` to count in runes (`[]rune`, `utf8.RuneCountInString`) instead of bytes, so umlauts are never cut mid-character. When an over-long word meets a line with no room left (`charsLeft <= 0`), the current line is flushed and the word starts on a fresh line, instead of panicking on `split[:charsLeft]` (a crash loop, since the item was already persisted and every restart re-rendered it). The fixed "split a second time" step became a loop that keeps splitting until the remainder fits. Existing `TestToMarkdownTable` expectations are unchanged; added `TestProcessItemMarkdownLayout` covering the review's panic input, a first word that exactly fills the line, a word longer than 3× the line break, and umlaut names (asserting `utf8.ValidString` per row).
+
+---
+
+## ~~Task 20 — Apply batched user messages oldest first (finding #5)~~ ✓ DONE
+
+`partitionChannelMessages` (`app/service/pantry_handling.go`) now collects the user messages, sorts them with `compareMessagesChronologically` (timestamp, then snowflake ID compared numerically by length then lexicographically) and joins them oldest first. `ChannelMessages` returns newest first, so e.g. `butter` followed by `1--` used to run as `1--\nbutter`. Bot-message selection is unchanged. Extended `TestPartitionChannelMessages` with newest-first, three-message and equal-timestamp cases.
+
+---
+
+## ~~Task 21 — Stable order for items added in the same minute (finding #6)~~ ✓ DONE
+
+`GetItems` (`app/repository/sqlite_pantry_client.go`) now orders by `date asc, id asc`. Dates are truncated to the minute, so items added together had no defined order and a later `2` or `2--` could hit a different item than the one shown. Covered by `TestGetItemsOrdersTiedDatesByID` in the new `app/repository/sqlite_pantry_client_test.go`.
+
+---
+
+## ~~Task 22 — Fail fast on missing `BOT_TOKEN`/`BOT_ID` (finding #7)~~ ✓ DONE
+
+Added a pure `validateDiscordConfig(DiscordConfig) error` in `app/config/config.go` that rejects an empty or still-placeholder (`"BOT_TOKEN"` / `"BOT_ID"`) token or bot ID, with a message telling the operator to set the env var. `loadConfig` calls it after the env override and `log.Fatal`s on error, except under the `test` config (`configs/test.yaml` has no discord section). Before, a container started without `BOT_ID` kept the literal placeholder, treated the bot's own table as user input and filled the DB with garbage. Covered by table-driven `TestValidateDiscordConfig` in the new `app/config/config_test.go`.
+
+---
+
+## ~~Task 23 — Stop swallowing startup errors and drop the fatal Ready timeout (finding #8)~~ ✓ DONE
+
+`syncChannel` now returns its error, and `ReadyEvent` returns it directly instead of faking a `MessageCreate`. `DiscordBot.Ready` (`app/service/discord_bot.go`) was rewritten without the 5 s timeout, `log.Fatal` and closable `errorChannel`: it starts one goroutine per handler that logs its own error with the channel ID, waits on a `sync.WaitGroup`, and logs either "All handlers initialized" or "N of M handlers failed to initialize". Ready also fires on reconnects, so it no longer kills the process on a slow Discord API and can't panic sending on a closed channel.
+
+---
+
+## ~~Task 24 — Make the Undo button actually undo (finding #9)~~ ✓ DONE
+
+Storage: `model.PantryClient` gained `CreateSnapshot()` and `RestoreSnapshot() bool`, backed by a shared `snapshots(table_name text primary key, items text not null)` table with the items JSON-encoded per pantry table (`app/repository/sqlite_pantry_client.go`). A present row means a snapshot exists, so a snapshot of an empty table (after `*`) is still restorable. `RestoreSnapshot` runs in a single transaction (read snapshot, delete all rows, re-insert with original ids and dates, delete the snapshot) and returns `false` without changes if no snapshot exists. `MockPantryClient` gained the two methods plus the missing `RemoveAllItems`. Covered by `TestSnapshotRestore`, `TestRestoreSnapshotWithoutSnapshot` and `TestSnapshotsAreIsolatedPerTable`.
+
+Behavior: a snapshot is taken right before each mutating action (a sync that applies user message input, or a modal submit). The Undo button sends the deferred ack and then restores the snapshot inside `syncChannel`, logging "Nothing to undo" if there is none. Undo reverts exactly the last action, once: it never takes a snapshot itself, so a second click is a no-op. Syncs with no input and no action (startup, empty channel) never touch the snapshot.
+
+---
+
+## ~~Task 25 — Bring `AGENTS.md` / `CLAUDE.md` back in line with the code (finding #10)~~ ✓ DONE
+
+Updated `AGENTS.md` (`CLAUDE.md` stays a symlink to it): config choices are `local`, `prod` and anything containing `test` (`int` was removed); `BOT_TOKEN`/`BOT_ID` come from the environment with `.env` optional, and startup fails fast on missing or placeholder values outside `test`; deployment no longer mentions `sed` injection, and the container needs `-e BOT_TOKEN -e BOT_ID`. The Discord event flow section now documents the per-channel lock, delete-before-apply with the bulk/per-message fallback and abort, oldest-first input, `date, id` ordering, the non-fatal `Ready`, and single-step Undo via the `snapshots` table.
+
+---
+
+## ~~Task 26 — Lower-priority review notes~~ ✓ DONE
+
+- **Duplicate rendering:** the single-message send path in `PublishItems` reuses the already rendered `markdownTable` instead of calling `ToMarkdownTable` a second time.
+- **Shutdown order:** `main.go` now closes the Discord session first, then shuts down the HTTP server, then closes the DB, so in-flight handlers never hit a closed database.
+
+---
+
 ## Notes for future-Claude
 
 - These tasks are intentionally **small and independent**. Do not bundle. If a task tempts you into a broader refactor, stop and ask the user.
