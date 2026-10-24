@@ -19,7 +19,7 @@ Track the inventory of my `groceries` and `freezer` Discord channels.
       3 croissants
       ```
 
-  - Suggest an item via `? <quantity> <item>`. The item remains untracked in a separate message and can be added by reacting with 👍 or 👎.
+  - Suggest an item via `? <quantity> <item>` (groceries only). The item remains untracked in a separate message below the list and can be added or discarded with the 👍 / 👎 buttons. The first click decides.
 
 - ### Remove Items
 

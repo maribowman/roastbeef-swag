@@ -41,26 +41,33 @@ var (
 
 // PreProcessMessageEvent consumes and preprocesses all channel messages.
 // It returns the message ID for the original bot Markdown table, the accumulated user input,
-// a list of message IDs (which can be dropped) and a potential error.
-func PreProcessMessageEvent(session *discordgo.Session, channelID string) (string, string, []string, error) {
+// a list of message IDs (which can be dropped), the extracted suggestions (only if
+// suggestionsEnabled) and a potential error.
+func PreProcessMessageEvent(session *discordgo.Session, channelID string, suggestionsEnabled bool) (string, string, []string, []suggestion, error) {
 	channelMessages, err := session.ChannelMessages(channelID, 100, "", "", "")
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get messages from Discord channel")
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 
-	lastBotMessageID, userInput, removableMessageIDs := partitionChannelMessages(channelMessages, config.Config.Discord.BotID)
-	return lastBotMessageID, userInput, removableMessageIDs, nil
+	lastBotMessageID, userInput, removableMessageIDs, suggestions := partitionChannelMessages(channelMessages, config.Config.Discord.BotID, suggestionsEnabled)
+	return lastBotMessageID, userInput, removableMessageIDs, suggestions, nil
 }
 
 // partitionChannelMessages keeps the single oldest bot message (to be reused) and
-// marks every other message — bot or user — as removable. User message contents are
+// marks every other message — bot or user — as removable. Suggestion messages are skipped
+// first: they are neither the table nor removable. User message contents are
 // accumulated as raw input, oldest first, so batched commands run in the order they were sent.
+// With suggestionsEnabled, `?` lines are split off per message (keeping the author ID) and
+// returned as suggestions, oldest first, instead of being joined into the input.
 // Order-independent: selection and input order are purely by timestamp (then snowflake ID).
-func partitionChannelMessages(messages []*discordgo.Message, botID string) (lastBotMessageID, userInput string, removableMessageIDs []string) {
+func partitionChannelMessages(messages []*discordgo.Message, botID string, suggestionsEnabled bool) (lastBotMessageID, userInput string, removableMessageIDs []string, suggestions []suggestion) {
 	var lastBotMessage *discordgo.Message
 	var userMessages []*discordgo.Message
 	for _, msg := range messages {
+		if msg.Author.ID == botID && isSuggestionMessage(msg) {
+			continue
+		}
 		if msg.Author.ID == botID {
 			if lastBotMessage == nil {
 				lastBotMessage = msg
@@ -81,11 +88,22 @@ func partitionChannelMessages(messages []*discordgo.Message, botID string) (last
 	slices.SortStableFunc(userMessages, compareMessagesChronologically)
 	contents := make([]string, 0, len(userMessages))
 	for _, msg := range userMessages {
-		contents = append(contents, msg.Content)
+		if !suggestionsEnabled {
+			contents = append(contents, msg.Content)
+			continue
+		}
+
+		rest, texts := extractSuggestions(msg.Content)
+		for _, text := range texts {
+			suggestions = append(suggestions, suggestion{Text: text, AuthorID: msg.Author.ID})
+		}
+		if strings.TrimSpace(rest) != "" {
+			contents = append(contents, rest)
+		}
 	}
 	userInput = strings.Join(contents, "\n")
 
-	return lastBotMessageID, userInput, removableMessageIDs
+	return lastBotMessageID, userInput, removableMessageIDs, suggestions
 }
 
 // compareMessagesChronologically orders messages by Timestamp, then by snowflake ID.
@@ -104,6 +122,12 @@ func compareMessagesChronologically(a, b *discordgo.Message) int {
 func ApplyUserInput(pantryClient model.PantryClient, userInput string) {
 	pantryClient.CreateSnapshot()
 	UpdateItems(pantryClient, userInput)
+}
+
+// ApplySuggestion snapshots the current items for undo, then adds the accepted suggestion.
+func ApplySuggestion(pantryClient model.PantryClient, input string) {
+	pantryClient.CreateSnapshot()
+	pantryClient.AddItem(generateNewPantryItem(input))
 }
 
 // ApplyModalInput snapshots the current items for undo, then applies the modal input.
