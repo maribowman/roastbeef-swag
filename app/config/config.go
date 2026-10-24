@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +25,7 @@ type config struct {
 func loadConfig() config {
 	configFile := "local"
 	if len(os.Args[1:]) > 0 {
-		if slices.Contains([]string{"local", "int", "prod"}, os.Args[1]) {
+		if slices.Contains([]string{"local", "prod"}, os.Args[1]) {
 			configFile = os.Args[1]
 		} else if strings.Contains(os.Args[1], "test") {
 			configFile = "test"
@@ -43,7 +44,23 @@ func loadConfig() config {
 	}
 
 	loadAndReplaceFromDotEnv(&config)
+	if configFile != "test" {
+		if err := validateDiscordConfig(config.Discord); err != nil {
+			log.Fatal().Err(err).Msg("Invalid discord config")
+		}
+	}
 	return config
+}
+
+func validateDiscordConfig(discordConfig DiscordConfig) error {
+	var errs []error
+	if discordConfig.Token == "" || discordConfig.Token == "BOT_TOKEN" {
+		errs = append(errs, errors.New("discord token is missing: set the BOT_TOKEN env var"))
+	}
+	if discordConfig.BotID == "" || discordConfig.BotID == "BOT_ID" {
+		errs = append(errs, errors.New("discord bot ID is missing: set the BOT_ID env var"))
+	}
+	return errors.Join(errs...)
 }
 
 func getConfigPath() string {
@@ -71,12 +88,16 @@ func getProjectRoot() string {
 }
 
 func loadAndReplaceFromDotEnv(config *config) {
+	// .env is an optional local-dev convenience; in prod the variables come
+	// straight from the container environment.
 	if err := godotenv.Load(); err != nil {
-		log.Info().Msg("No .env file found, skipping overwrite")
-		return
+		log.Debug().Msg("No .env file found, relying on existing environment")
 	}
 
-	log.Info().Msg("Found .env file -> overwriting configs")
-	config.Discord.Token = os.Getenv("BOT_TOKEN")
-	config.Discord.BotID = os.Getenv("BOT_ID")
+	if token := os.Getenv("BOT_TOKEN"); token != "" {
+		config.Discord.Token = token
+	}
+	if botID := os.Getenv("BOT_ID"); botID != "" {
+		config.Discord.BotID = botID
+	}
 }

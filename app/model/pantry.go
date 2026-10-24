@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/renderer"
@@ -39,7 +40,7 @@ func ToMarkdownTable(items []PantryItem, linebreak int, dateFormat string) strin
 }
 
 func processItemMarkdownLayout(index int, item PantryItem, linebreak int, dateFormat string) [][]string {
-	if len(item.Name) <= linebreak {
+	if utf8.RuneCountInString(item.Name) <= linebreak {
 		return [][]string{{
 			strconv.Itoa(index),
 			item.Name,
@@ -60,17 +61,28 @@ func processItemMarkdownLayout(index int, item PantryItem, linebreak int, dateFo
 			nameLine += " "
 		}
 
-		if len(split) > linebreak {
-			// Split too long item word
-			charsLeft := linebreak - len(nameLine) - 1
-			nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s%s-", nameLine, split[:charsLeft]))
-			nameLine = split[charsLeft:]
-			// Split a second time in case of a really long word (covers 99.9%)
-			if len(nameLine) > linebreak {
-				nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s-", nameLine[:linebreak-1]))
-				nameLine = nameLine[linebreak-1:]
+		word := []rune(split)
+		if len(word) > linebreak {
+			// Split too long item word; leave room for the trailing hyphen
+			chunk := max(linebreak-1, 1)
+			charsLeft := linebreak - utf8.RuneCountInString(nameLine) - 1
+			if charsLeft <= 0 {
+				// No room left on the current line: flush it and start the word on a fresh line
+				if trimmed := strings.TrimSpace(nameLine); trimmed != "" {
+					nameMultiLine = append(nameMultiLine, trimmed)
+				}
+				nameLine = ""
+				charsLeft = chunk
 			}
-		} else if len(nameLine)+len(split) > linebreak {
+			nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s%s-", nameLine, string(word[:charsLeft])))
+			rest := word[charsLeft:]
+			// Keep splitting until the remainder fits on a line
+			for len(rest) > linebreak {
+				nameMultiLine = append(nameMultiLine, fmt.Sprintf("%s-", string(rest[:chunk])))
+				rest = rest[chunk:]
+			}
+			nameLine = string(rest)
+		} else if utf8.RuneCountInString(nameLine)+len(word) > linebreak {
 			// Create newline before name line gets too long
 			nameMultiLine = append(nameMultiLine, strings.TrimSpace(nameLine))
 			// Assign leftover split to item line

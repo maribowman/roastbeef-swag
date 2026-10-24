@@ -31,4 +31,9 @@ type PantryClient interface {
 	RemoveItem(int)
 	RemoveAllItems()
 	GetItems() []PantryItem
+	// CreateSnapshot overwrites the stored snapshot with the current items.
+	CreateSnapshot()
+	// RestoreSnapshot replaces all items with the stored snapshot and deletes it.
+	// Returns false and changes nothing if no snapshot exists.
+	RestoreSnapshot() bool
 }
