@@ -514,3 +514,98 @@ func TestPartitionChannelMessages(t *testing.T) {
 		})
 	}
 }
+
+func TestUndoLastAction(t *testing.T) {
+	// freeze the clock so production and expected timestamps share one instant
+	fixed := time.Now()
+	now = func() time.Time { return fixed }
+	t.Cleanup(func() { now = time.Now })
+
+	today := now().Truncate(time.Minute)
+	yesterday := today.Add(-24 * time.Hour)
+	lastWeek := today.Add(-7 * 24 * time.Hour)
+
+	type step struct {
+		kind  string // "input", "modal" or "undo"
+		input string
+	}
+	apply := func(client model.PantryClient, s step) {
+		switch s.kind {
+		case "input":
+			ApplyUserInput(client, s.input)
+		case "modal":
+			ApplyModalInput(client, s.input)
+		case "undo":
+			// mirrors the UndoButton action: restore only, never snapshot
+			client.RestoreSnapshot()
+		}
+	}
+
+	initialItems := []model.PantryItem{
+		{Name: "bacon", Quantity: 2, Date: lastWeek},
+		{Name: "eggs", Quantity: 6, Date: yesterday},
+		{Name: "milk", Quantity: 1, Date: today},
+	}
+	initialList := []model.PantryItem{
+		{ID: 1, Name: "bacon", Quantity: 2, Date: lastWeek},
+		{ID: 2, Name: "eggs", Quantity: 6, Date: yesterday},
+		{ID: 3, Name: "milk", Quantity: 1, Date: today},
+	}
+
+	// where
+	tests := map[string]struct {
+		steps    []step
+		expected []model.PantryItem
+	}{
+		"add then undo": {
+			steps:    []step{{kind: "input", input: "3 coffee"}, {kind: "undo"}},
+			expected: initialList,
+		},
+		"remove all then undo": {
+			steps:    []step{{kind: "input", input: "*"}, {kind: "undo"}},
+			expected: initialList,
+		},
+		"modal edit then undo": {
+			steps:    []step{{kind: "modal", input: "[1] 5 bacon\n[3] oat milk\nbeer"}, {kind: "undo"}},
+			expected: initialList,
+		},
+		"two actions then undo reverts only the second": {
+			steps: []step{{kind: "input", input: "2"}, {kind: "input", input: "1++"}, {kind: "undo"}},
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 2, Date: lastWeek},
+				{ID: 3, Name: "milk", Quantity: 1, Date: today},
+			},
+		},
+		"undo twice changes nothing on the second click": {
+			steps: []step{{kind: "input", input: "2"}, {kind: "input", input: "beer"}, {kind: "undo"}, {kind: "undo"}},
+			expected: []model.PantryItem{
+				{ID: 1, Name: "bacon", Quantity: 2, Date: lastWeek},
+				{ID: 3, Name: "milk", Quantity: 1, Date: today},
+			},
+		},
+		"undo without prior action changes nothing": {
+			steps:    []step{{kind: "undo"}},
+			expected: initialList,
+		},
+	}
+
+	tableIndex := 0
+	for name, test := range tests {
+		tableIndex++
+		t.Run(name, func(t *testing.T) {
+			// given: a fresh table per case, so no snapshot leaks between cases
+			pantryClient := repository.NewSqlitePantryClient(repository.NewDatabaseClient(), fmt.Sprintf("undo_tests_%d", tableIndex))
+			for _, item := range initialItems {
+				pantryClient.AddItem(item)
+			}
+
+			// when
+			for _, s := range test.steps {
+				apply(pantryClient, s)
+			}
+
+			// then
+			assert.EqualValues(t, test.expected, pantryClient.GetItems())
+		})
+	}
+}

@@ -72,8 +72,7 @@ func (handler *PantryHandler) syncChannel(session *discordgo.Session, action fun
 	}
 
 	if strings.TrimSpace(userInput) != "" {
-		// snapshot hook (wave 2)
-		UpdateItems(handler.pantryClient, userInput)
+		ApplyUserInput(handler.pantryClient, userInput)
 	}
 
 	PublishItems(handler.pantryClient.GetItems(), session, handler.channelID, lastBotMessageID, handler.lineBreak, handler.dateFormat)
@@ -145,7 +144,12 @@ func (handler *PantryHandler) MessageComponentInteractionEvent(session *discordg
 		}); err != nil {
 			log.Error().Err(err).Msg("Failed to acknowledge interaction")
 		}
-		if err := handler.syncChannel(session, nil); err != nil {
+		// Undo never takes a snapshot, so a second click is a no-op instead of a redo.
+		if err := handler.syncChannel(session, func() {
+			if !handler.pantryClient.RestoreSnapshot() {
+				log.Debug().Msg("Nothing to undo")
+			}
+		}); err != nil {
 			log.Error().Err(err).Msgf("Could not sync channel `%s` on undo", handler.channelID)
 		}
 	default:
@@ -167,7 +171,7 @@ func (handler *PantryHandler) ModalSubmitInteractionEvent(session *discordgo.Ses
 		// Apply the modal under the channel lock, then republish through the shared flow
 		// so multi-message tables stay consistent and never exceed the 2000-character limit.
 		if err := handler.syncChannel(session, func() {
-			UpdateItemsFromModal(handler.pantryClient, modalInput)
+			ApplyModalInput(handler.pantryClient, modalInput)
 		}); err != nil {
 			log.Error().Err(err).Msgf("Could not sync channel `%s` on modal submit", handler.channelID)
 		}

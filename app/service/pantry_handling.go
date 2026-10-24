@@ -100,6 +100,18 @@ func compareMessagesChronologically(a, b *discordgo.Message) int {
 	return strings.Compare(a.ID, b.ID)
 }
 
+// ApplyUserInput snapshots the current items for undo, then applies the user input.
+func ApplyUserInput(pantryClient model.PantryClient, userInput string) {
+	pantryClient.CreateSnapshot()
+	UpdateItems(pantryClient, userInput)
+}
+
+// ApplyModalInput snapshots the current items for undo, then applies the modal input.
+func ApplyModalInput(pantryClient model.PantryClient, modalInput string) {
+	pantryClient.CreateSnapshot()
+	UpdateItemsFromModal(pantryClient, modalInput)
+}
+
 func UpdateItemsFromModal(pantryClient model.PantryClient, modalInput string) {
 	items := pantryClient.GetItems()
 	updatedItems := make([]int, 0, len(items))
